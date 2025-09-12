@@ -19,6 +19,7 @@ import {
   ArrowDown,
   Upload,
   BookOpen,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Header } from '@/components/ui/header';
+import { Footer } from '@/components/ui/footer';
 import {
   PieChart,
   Pie,
@@ -39,6 +41,8 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import toast from 'react-hot-toast';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface User {
   username: string;
@@ -262,6 +266,100 @@ export default function AnalyzePage() {
     toast.success(`Arquivo ${filename} baixado com sucesso!`);
   };
 
+  const exportToPDF = (users: User[], title: string) => {
+    const doc = new jsPDF();
+
+    // Adicionar logo/título
+    doc.setFontSize(20);
+    doc.setTextColor(103, 58, 183); // Cor roxa
+    doc.text('FollowerScan', 14, 20);
+
+    // Adicionar título da lista
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 14, 35);
+
+    // Adicionar data de geração
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 45);
+    doc.text(`Total de usuários: ${users.length}`, 14, 52);
+
+    // Preparar dados para a tabela
+    const tableData = users.map((user, index) => [
+      index + 1,
+      `@${user.username}`,
+      user.timestamp
+        ? new Date(user.timestamp * 1000).toLocaleDateString('pt-BR')
+        : '-',
+    ]);
+
+    // Adicionar tabela com autoTable
+    (doc as any).autoTable({
+      head: [['#', 'Usuário', 'Data']],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [103, 58, 183], // Cor roxa para o cabeçalho
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 250], // Cor de fundo alternada
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' }, // Coluna #
+        1: { cellWidth: 'auto' }, // Coluna Usuário
+        2: { cellWidth: 40, halign: 'center' }, // Coluna Data
+      },
+      didDrawPage: function (data: any) {
+        // Adicionar rodapé em cada página
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          `Página ${data.pageNumber} de ${doc.getNumberOfPages()}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        );
+      },
+    });
+
+    // Adicionar estatísticas no final do documento
+    const finalY = (doc as any).lastAutoTable.finalY || 60;
+    if (finalY < doc.internal.pageSize.height - 60) {
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Estatísticas:', 14, finalY + 15);
+      doc.setFontSize(9);
+      doc.text(`• Total de usuários: ${users.length}`, 14, finalY + 22);
+      doc.text(
+        `• Primeira entrada: ${users[0]?.username || '-'}`,
+        14,
+        finalY + 28
+      );
+      doc.text(
+        `• Última entrada: ${users[users.length - 1]?.username || '-'}`,
+        14,
+        finalY + 34
+      );
+    }
+
+    // Salvar o PDF
+    const filename = `${title.toLowerCase().replace(/\s+/g, '_')}_${
+      new Date().toISOString().split('T')[0]
+    }.pdf`;
+    doc.save(filename);
+
+    toast.success(`PDF "${filename}" baixado com sucesso!`);
+  };
+
   const shareStats = async () => {
     if (navigator.share && data) {
       try {
@@ -296,14 +394,14 @@ export default function AnalyzePage() {
 
   if (!data) {
     return (
-      <div className='min-h-screen gradient-bg'>
+      <div className='min-h-screen gradient-bg flex flex-col'>
         <Header
           subtitle='Análise dos seguidores'
           rightContent={
             <Button
               variant='ghost'
               onClick={() => router.push('/')}
-              className='text-white hover:bg-white/20'
+              className='btn-header'
             >
               <ArrowLeft className='w-4 h-4 mr-2' />
               Voltar ao Início
@@ -311,7 +409,7 @@ export default function AnalyzePage() {
           }
         />
 
-        <main className='container mx-auto px-4 py-16'>
+        <main className='container mx-auto px-4 py-16 flex-1'>
           <div className='text-center mb-12'>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -336,7 +434,7 @@ export default function AnalyzePage() {
               transition={{ delay: 0.2 }}
               className='max-w-md mx-auto'
             >
-              <Card className='p-6 text-center hover:shadow-xl transition-shadow'>
+              <Card className='p-6 text-center hover:shadow-xl transition-shadow card-instagram'>
                 <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
                   <Upload className='w-6 h-6 text-green-600' />
                 </div>
@@ -361,9 +459,9 @@ export default function AnalyzePage() {
               className='mt-8'
             >
               <Button
-                variant='ghost'
+                variant='outline'
                 onClick={() => router.push('/tutorial')}
-                className='text-white hover:bg-white/20'
+                className='bg-white/10 border-white/20 text-white hover:bg-white/20'
               >
                 <BookOpen className='w-4 h-4 mr-2' />
                 Ver Tutorial
@@ -371,6 +469,9 @@ export default function AnalyzePage() {
             </motion.div>
           </div>
         </main>
+
+        {/* Footer */}
+        <Footer />
       </div>
     );
   }
@@ -410,7 +511,7 @@ export default function AnalyzePage() {
   };
 
   return (
-    <div className='min-h-screen gradient-bg'>
+    <div className='min-h-screen gradient-bg flex flex-col'>
       <Header
         subtitle='Análise dos seguidores'
         rightContent={
@@ -418,24 +519,20 @@ export default function AnalyzePage() {
             <Button
               variant='ghost'
               onClick={saveAnalysis}
-              className='text-white hover:bg-white/20'
+              className='btn-header'
               title='Salvar análise'
             >
               <Save className='w-4 h-4 mr-2' />
               Salvar
             </Button>
-            <Button
-              variant='ghost'
-              onClick={shareStats}
-              className='text-white hover:bg-white/20'
-            >
+            <Button variant='ghost' onClick={shareStats} className='btn-header'>
               <Share2 className='w-4 h-4 mr-2' />
               Compartilhar
             </Button>
             <Button
               variant='ghost'
               onClick={clearAnalysis}
-              className='text-white hover:bg-white/20'
+              className='btn-header'
               title='Limpar todos os dados'
             >
               <Trash2 className='w-4 h-4 mr-2' />
@@ -444,7 +541,7 @@ export default function AnalyzePage() {
             <Button
               variant='ghost'
               onClick={() => router.push('/upload')}
-              className='text-white hover:bg-white/20'
+              className='btn-header'
             >
               <ArrowLeft className='w-4 h-4 mr-2' />
               Nova Análise
@@ -453,7 +550,7 @@ export default function AnalyzePage() {
         }
       />
 
-      <main className='container mx-auto px-4 py-8'>
+      <main className='container mx-auto px-4 py-8 flex-1'>
         {/* Data de análise */}
         {data.analyzedAt && (
           <div className='text-center mb-4'>
@@ -718,21 +815,30 @@ export default function AnalyzePage() {
                     count={data.stats.notFollowingBackCount}
                     color='text-red-600'
                     bgColor='bg-red-50'
-                    onExport={() => exportData('csv', data.notFollowingBack)}
+                    onExport={() =>
+                      exportToPDF(
+                        data.notFollowingBack,
+                        'Não me seguem de volta'
+                      )
+                    }
                   />
                   <StatCard
                     title='Seguidores mútuos'
                     count={data.stats.mutualCount}
                     color='text-green-600'
                     bgColor='bg-green-50'
-                    onExport={() => exportData('csv', data.mutual)}
+                    onExport={() =>
+                      exportToPDF(data.mutual, 'Seguidores mútuos')
+                    }
                   />
                   <StatCard
                     title='Eu não sigo de volta'
                     count={data.stats.notFollowedBackCount}
                     color='text-orange-600'
                     bgColor='bg-orange-50'
-                    onExport={() => exportData('csv', data.notFollowedBack)}
+                    onExport={() =>
+                      exportToPDF(data.notFollowedBack, 'Eu não sigo de volta')
+                    }
                   />
                 </div>
               </TabsContent>
@@ -792,6 +898,9 @@ export default function AnalyzePage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
@@ -810,16 +919,29 @@ function StatCard({
   onExport?: () => void;
 }) {
   return (
-    <div className={`p-4 ${bgColor} rounded-lg`}>
+    <div className={`p-4 ${bgColor} rounded-lg relative`}>
       <div className='flex justify-between items-center mb-2'>
         <h3 className='font-medium text-gray-700'>{title}</h3>
         {onExport && (
-          <Button variant='ghost' size='sm' onClick={onExport}>
-            <Download className='w-4 h-4' />
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={onExport}
+            title='Baixar lista completa em PDF'
+            className='hover:bg-white/70 transition-all hover:shadow-md border-gray-300'
+          >
+            <FileText className='w-4 h-4 mr-1 text-red-600' />
+            <span className='text-xs font-medium'>PDF</span>
           </Button>
         )}
       </div>
       <p className={`text-2xl font-bold ${color}`}>{count.toLocaleString()}</p>
+      {onExport && (
+        <div className='flex items-center mt-2 text-xs text-gray-500'>
+          <Download className='w-3 h-3 mr-1' />
+          <span>Exportar lista completa</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -835,11 +957,100 @@ function UserList({
   emptyMessage: string;
   actionButton?: (user: User) => React.ReactNode;
 }) {
+  const exportListToPDF = () => {
+    const doc = new jsPDF();
+
+    // Adicionar logo/título
+    doc.setFontSize(20);
+    doc.setTextColor(103, 58, 183); // Cor roxa
+    doc.text('FollowerScan', 14, 20);
+
+    // Adicionar título da lista
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 14, 35);
+
+    // Adicionar data de geração
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 45);
+    doc.text(`Total de usuários: ${users.length}`, 14, 52);
+
+    // Preparar dados para a tabela
+    const tableData = users.map((user, index) => [
+      index + 1,
+      `@${user.username}`,
+      user.timestamp
+        ? new Date(user.timestamp * 1000).toLocaleDateString('pt-BR')
+        : '-',
+    ]);
+
+    // Adicionar tabela com autoTable
+    (doc as any).autoTable({
+      head: [['#', 'Usuário', 'Data']],
+      body: tableData,
+      startY: 60,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [103, 58, 183], // Cor roxa para o cabeçalho
+        textColor: 255,
+        fontSize: 11,
+        fontStyle: 'bold',
+      },
+      bodyStyles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 250], // Cor de fundo alternada
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' }, // Coluna #
+        1: { cellWidth: 'auto' }, // Coluna Usuário
+        2: { cellWidth: 40, halign: 'center' }, // Coluna Data
+      },
+      didDrawPage: function (data: any) {
+        // Adicionar rodapé em cada página
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+          `Página ${data.pageNumber} de ${doc.getNumberOfPages()}`,
+          doc.internal.pageSize.width / 2,
+          doc.internal.pageSize.height - 10,
+          { align: 'center' }
+        );
+      },
+    });
+
+    // Salvar o PDF
+    const filename = `${title.toLowerCase().replace(/\s+/g, '_')}_${
+      new Date().toISOString().split('T')[0]
+    }.pdf`;
+    doc.save(filename);
+
+    toast.success(`PDF "${filename}" baixado com sucesso!`);
+  };
+
   return (
     <div>
       <div className='flex justify-between items-center mb-4'>
         <h3 className='text-lg font-semibold'>{title}</h3>
-        <Badge variant='secondary'>{users.length} usuários</Badge>
+        <div className='flex items-center gap-2'>
+          <Badge variant='secondary'>{users.length} usuários</Badge>
+          {users.length > 0 && (
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={exportListToPDF}
+              className='flex items-center gap-1'
+              title='Exportar lista em PDF'
+            >
+              <FileText className='w-4 h-4' />
+              <Download className='w-4 h-4' />
+              PDF
+            </Button>
+          )}
+        </div>
       </div>
 
       {users.length === 0 ? (

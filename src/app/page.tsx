@@ -5,23 +5,24 @@ import { motion } from 'framer-motion';
 import { Users, ArrowRight, BookOpen, Upload, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Footer } from '@/components/ui/footer';
 
 export default function HomePage() {
   const router = useRouter();
 
   return (
-    <div className='min-h-screen gradient-bg'>
+    <div className='min-h-screen gradient-bg flex flex-col'>
       {/* Header */}
-      <header className='glass-effect sticky top-0 z-50'>
+      <header className='header-bg sticky top-0 z-50'>
         <div className='container mx-auto px-4 py-4'>
           <div className='flex items-center justify-between'>
             <div className='flex items-center space-x-3'>
               <div className='w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg'>
-                <Users className='text-purple-600 w-5 h-5' />
+                <Users className='text-[#1a3d66] w-5 h-5' />
               </div>
               <div>
                 <h1 className='text-white font-bold text-xl'>FollowerScan</h1>
-                <p className='text-white text-xs opacity-80'>
+                <p className='text-white/80 text-xs'>
                   Gerencie seus seguidores do Instagram
                 </p>
               </div>
@@ -29,7 +30,7 @@ export default function HomePage() {
             <Button
               onClick={() => router.push('/analyze')}
               variant='ghost'
-              className='text-white hover:bg-white/20'
+              className='btn-header'
             >
               <BarChart3 className='w-4 h-4 mr-2' />
               Ver Análises
@@ -39,12 +40,12 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <main className='container mx-auto px-4 py-16'>
+      <main className='container mx-auto px-4 py-16 flex-1'>
         <div className='text-center mb-16'>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className='text-white text-5xl lg:text-6xl font-bold mb-6'
+            className='text-white text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg'
           >
             Analise seus seguidores do Instagram
           </motion.h1>
@@ -52,7 +53,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className='text-white text-xl opacity-90 max-w-3xl mx-auto mb-8'
+            className='text-white text-xl opacity-90 max-w-3xl mx-auto mb-8 drop-shadow'
           >
             Descubra quem não está te seguindo de volta, seus seguidores mútuos
             e obtenha insights valiosos sobre seu perfil - tudo de forma privada
@@ -66,7 +67,7 @@ export default function HomePage() {
             <Button
               onClick={() => router.push('/tutorial')}
               size='lg'
-              className='bg-white text-purple-600 hover:bg-gray-100 font-semibold px-8 py-6 text-lg'
+              className='bg-white text-purple-600 hover:bg-gray-100 font-semibold px-8 py-6 text-lg shadow-xl'
             >
               Começar Agora
               <ArrowRight className='w-5 h-5 ml-2' />
@@ -81,7 +82,7 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <Card className='p-6 text-center hover:shadow-xl transition-shadow'>
+            <Card className='p-6 text-center hover:shadow-xl transition-shadow card-instagram'>
               <div className='w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4'>
                 <BookOpen className='w-6 h-6 text-blue-600' />
               </div>
@@ -107,7 +108,7 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className='p-6 text-center hover:shadow-xl transition-shadow'>
+            <Card className='p-6 text-center hover:shadow-xl transition-shadow card-instagram'>
               <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
                 <Upload className='w-6 h-6 text-green-600' />
               </div>
@@ -130,7 +131,7 @@ export default function HomePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <Card className='p-6 text-center hover:shadow-xl transition-shadow'>
+            <Card className='p-6 text-center hover:shadow-xl transition-shadow card-instagram'>
               <div className='w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4'>
                 <BarChart3 className='w-6 h-6 text-purple-600' />
               </div>
@@ -164,6 +165,9 @@ export default function HomePage() {
           </div>
         </motion.div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }

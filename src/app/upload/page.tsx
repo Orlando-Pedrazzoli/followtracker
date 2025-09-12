@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/ui/header';
+import { Footer } from '@/components/ui/footer';
 import toast from 'react-hot-toast';
 
 interface UploadedFile {
@@ -181,14 +182,14 @@ export default function UploadPage() {
   };
 
   return (
-    <div className='min-h-screen gradient-bg'>
+    <div className='min-h-screen gradient-bg flex flex-col'>
       <Header
         subtitle='Upload dos arquivos'
         rightContent={
           <Button
             variant='ghost'
             onClick={() => router.push('/tutorial')}
-            className='text-white hover:bg-white/20'
+            className='btn-header'
           >
             <ArrowLeft className='w-4 h-4 mr-2' />
             Voltar ao Tutorial
@@ -196,13 +197,13 @@ export default function UploadPage() {
         }
       />
 
-      <main className='container mx-auto px-4 py-8'>
+      <main className='container mx-auto px-4 py-8 flex-1'>
         {/* Hero Section */}
         <div className='text-center mb-12'>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className='text-white text-3xl lg:text-4xl font-bold mb-4'
+            className='text-white text-3xl lg:text-4xl font-bold mb-4 drop-shadow-lg'
           >
             Faça upload dos seus arquivos
           </motion.h2>
@@ -210,7 +211,7 @@ export default function UploadPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className='text-white text-lg opacity-90 max-w-2xl mx-auto'
+            className='text-white text-lg opacity-90 max-w-2xl mx-auto drop-shadow'
           >
             Carregue os arquivos <strong>followers_1.json</strong> (ou
             followers_2.json, etc) e <strong>following.json</strong> que você
@@ -220,7 +221,7 @@ export default function UploadPage() {
 
         <div className='max-w-4xl mx-auto'>
           {/* Upload Area */}
-          <Card className='mb-8'>
+          <Card className='mb-8 card-instagram'>
             <CardHeader>
               <CardTitle className='text-center'>
                 <Upload className='w-8 h-8 mx-auto mb-2' />
@@ -314,7 +315,7 @@ export default function UploadPage() {
 
           {/* Uploaded Files */}
           {files.length > 0 && (
-            <Card className='mb-8'>
+            <Card className='mb-8 card-instagram'>
               <CardHeader>
                 <CardTitle className='flex items-center justify-between'>
                   Arquivos Carregados
@@ -409,7 +410,7 @@ export default function UploadPage() {
             <Button
               onClick={handleAnalyze}
               disabled={files.length !== 2 || isProcessing}
-              className='bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 text-lg'
+              className='bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 text-lg shadow-xl'
             >
               {isProcessing ? (
                 <>
@@ -454,6 +455,9 @@ export default function UploadPage() {
           </Card>
         </div>
       </main>
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
