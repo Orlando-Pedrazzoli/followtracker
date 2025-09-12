@@ -37,7 +37,8 @@ import toast from 'react-hot-toast';
 
 interface User {
   username: string;
-  timestamp?: string;
+  timestamp?: number;
+  href?: string;
 }
 
 interface AnalysisData {
@@ -86,6 +87,7 @@ export default function AnalyzePage() {
         setIsLoading(false);
         toast.success('Análise concluída com sucesso!');
       } catch (error) {
+        console.error('Erro ao carregar dados:', error);
         toast.error('Erro ao carregar dados');
         router.push('/upload');
       }
@@ -95,22 +97,40 @@ export default function AnalyzePage() {
   }, [router]);
 
   const analyzeData = (followers: any[], following: any[]): AnalysisData => {
-    // Normalizar dados (Instagram pode ter formatos diferentes)
+    // Normalizar dados do formato Instagram
     const normalizeUsers = (users: any[]): User[] => {
       return users.map(user => {
+        // Formato do Instagram: objeto com string_list_data
+        if (user.string_list_data && user.string_list_data.length > 0) {
+          const userData = user.string_list_data[0];
+          return {
+            username: userData.value,
+            timestamp: userData.timestamp,
+            href: userData.href,
+          };
+        }
+        // Formato alternativo: array direto de strings
         if (typeof user === 'string') {
           return { username: user };
         }
-        if (user.string_list_data && user.string_list_data[0]) {
+        // Formato alternativo: objeto com username
+        if (user.username) {
           return {
-            username: user.string_list_data[0].value,
-            timestamp: user.string_list_data[0].timestamp,
+            username: user.username,
+            timestamp: user.timestamp,
+            href: user.href,
           };
         }
-        if (user.username) {
-          return { username: user.username, timestamp: user.timestamp };
+        // Formato alternativo: objeto com value
+        if (user.value) {
+          return {
+            username: user.value,
+            timestamp: user.timestamp,
+            href: user.href,
+          };
         }
-        return { username: user.value || user.name || 'unknown' };
+        // Fallback
+        return { username: user.name || user.toString() || 'unknown' };
       });
     };
 
@@ -161,8 +181,15 @@ export default function AnalyzePage() {
 
     if (type === 'csv') {
       const csvContent = [
-        'Username,Timestamp',
-        ...users.map(user => `${user.username},${user.timestamp || ''}`),
+        'Username,Timestamp,Profile URL',
+        ...users.map(
+          user =>
+            `${user.username},${
+              user.timestamp
+                ? new Date(user.timestamp * 1000).toISOString()
+                : ''
+            },${user.href || ''}`
+        ),
       ].join('\n');
 
       const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -529,8 +556,13 @@ export default function AnalyzePage() {
                       variant='outline'
                       size='sm'
                       className='text-red-600 hover:text-red-700'
+                      onClick={() => {
+                        if (user.href) {
+                          window.open(user.href, '_blank');
+                        }
+                      }}
                     >
-                      Deixar de seguir
+                      Ver Perfil
                     </Button>
                   )}
                 />
@@ -554,8 +586,13 @@ export default function AnalyzePage() {
                       variant='outline'
                       size='sm'
                       className='text-blue-600 hover:text-blue-700'
+                      onClick={() => {
+                        if (user.href) {
+                          window.open(user.href, '_blank');
+                        }
+                      }}
                     >
-                      Seguir
+                      Ver Perfil
                     </Button>
                   )}
                 />
@@ -636,9 +673,9 @@ function UserList({
                   <p className='font-medium'>@{user.username}</p>
                   {user.timestamp && (
                     <p className='text-xs text-gray-500'>
-                      {new Date(
-                        parseInt(user.timestamp) * 1000
-                      ).toLocaleDateString()}
+                      {new Date(user.timestamp * 1000).toLocaleDateString(
+                        'pt-BR'
+                      )}
                     </p>
                   )}
                 </div>

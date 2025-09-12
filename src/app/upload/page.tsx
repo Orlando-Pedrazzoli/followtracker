@@ -50,16 +50,47 @@ export default function UploadPage() {
             let fileType: 'followers' | 'following';
             let processedData: any[];
 
-            // Detectar tipo de arquivo baseado no nome
-            if (file.name.toLowerCase().includes('followers')) {
+            // Detectar tipo de arquivo baseado no nome e estrutura
+            const fileName = file.name.toLowerCase();
+
+            // Verificar se é followers_1, followers_2, etc ou apenas followers
+            if (
+              fileName.includes('follower') &&
+              !fileName.includes('following')
+            ) {
               fileType = 'followers';
-              processedData = jsonData;
-            } else if (file.name.toLowerCase().includes('following')) {
+
+              // O arquivo followers_1.json é um array direto
+              if (Array.isArray(jsonData)) {
+                processedData = jsonData;
+              } else if (jsonData.relationships_followers) {
+                // Formato alternativo do Instagram
+                processedData = jsonData.relationships_followers;
+              } else if (jsonData.followers) {
+                processedData = jsonData.followers;
+              } else {
+                // Tentar extrair dados de qualquer estrutura
+                processedData =
+                  (Object.values(jsonData)[0] as any[]) || jsonData;
+              }
+            } else if (fileName.includes('following')) {
               fileType = 'following';
-              processedData = jsonData;
+
+              // O arquivo following.json tem a chave relationships_following
+              if (jsonData.relationships_following) {
+                processedData = jsonData.relationships_following;
+              } else if (Array.isArray(jsonData)) {
+                processedData = jsonData;
+              } else if (jsonData.following) {
+                processedData = jsonData.following;
+              } else {
+                // Tentar extrair dados de qualquer estrutura
+                processedData =
+                  (Object.values(jsonData)[0] as any[]) || jsonData;
+              }
             } else {
               toast.error(
-                `Não foi possível identificar o tipo do arquivo ${file.name}`
+                `Não foi possível identificar o tipo do arquivo ${file.name}. Use arquivos followers_1.json ou following.json`
               );
               return;
             }
@@ -85,6 +116,7 @@ export default function UploadPage() {
             setFiles(prev => [...prev, newFile]);
             toast.success(`Arquivo ${file.name} carregado com sucesso!`);
           } catch (error) {
+            console.error('Erro ao processar arquivo:', error);
             toast.error(
               `Erro ao processar ${file.name}: arquivo JSON inválido`
             );
@@ -112,7 +144,7 @@ export default function UploadPage() {
   const handleAnalyze = async () => {
     if (files.length !== 2) {
       toast.error(
-        'É necessário carregar ambos os arquivos (followers.json e following.json)'
+        'É necessário carregar ambos os arquivos (followers_1.json e following.json)'
       );
       return;
     }
@@ -180,9 +212,9 @@ export default function UploadPage() {
             transition={{ delay: 0.1 }}
             className='text-white text-lg opacity-90 max-w-2xl mx-auto'
           >
-            Carregue os arquivos <strong>followers.json</strong> e{' '}
-            <strong>following.json</strong>
-            que você baixou do Instagram
+            Carregue os arquivos <strong>followers_1.json</strong> (ou
+            followers_2.json, etc) e <strong>following.json</strong> que você
+            baixou do Instagram
           </motion.p>
         </div>
 
@@ -248,7 +280,7 @@ export default function UploadPage() {
                     )}
                   </div>
                   <div>
-                    <p className='font-medium'>followers.json</p>
+                    <p className='font-medium'>followers_1.json</p>
                     <p className='text-sm text-gray-600'>
                       Lista de quem te segue
                     </p>
@@ -363,7 +395,7 @@ export default function UploadPage() {
                       Carregue o arquivo{' '}
                       {files.some(f => f.type === 'followers')
                         ? 'following.json'
-                        : 'followers.json'}{' '}
+                        : 'followers_1.json (ou followers_2.json)'}{' '}
                       para continuar
                     </p>
                   </div>
