@@ -14,6 +14,9 @@ import {
   ArrowLeft,
   Share2,
   BarChart3,
+  Trash2,
+  Save,
+  ArrowDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +58,7 @@ interface AnalysisData {
     notFollowedBackCount: number;
     engagementRatio: number;
   };
+  analyzedAt?: string;
 }
 
 const COLORS = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'];
@@ -69,6 +73,17 @@ export default function AnalyzePage() {
   useEffect(() => {
     const loadData = () => {
       try {
+        // Primeiro, tenta carregar análise salva
+        const savedAnalysis = localStorage.getItem('instagram-analysis');
+        if (savedAnalysis) {
+          const analysisData = JSON.parse(savedAnalysis);
+          setData(analysisData);
+          setIsLoading(false);
+          toast.success('Análise carregada do histórico!');
+          return;
+        }
+
+        // Se não houver análise salva, tenta processar dados novos
         const savedData = localStorage.getItem('instagram-data');
         if (!savedData) {
           toast.error(
@@ -83,9 +98,20 @@ export default function AnalyzePage() {
           parsedData.followers,
           parsedData.following
         );
-        setData(analysisResult);
+
+        // Salva a análise no localStorage
+        const analysisWithDate = {
+          ...analysisResult,
+          analyzedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(
+          'instagram-analysis',
+          JSON.stringify(analysisWithDate)
+        );
+
+        setData(analysisWithDate);
         setIsLoading(false);
-        toast.success('Análise concluída com sucesso!');
+        toast.success('Análise concluída e salva com sucesso!');
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         toast.error('Erro ao carregar dados');
@@ -172,6 +198,30 @@ export default function AnalyzePage() {
       notFollowedBack,
       stats,
     };
+  };
+
+  const clearAnalysis = () => {
+    if (confirm('Tem certeza que deseja limpar todos os dados salvos?')) {
+      localStorage.removeItem('instagram-analysis');
+      localStorage.removeItem('instagram-data');
+      toast.success('Dados limpos com sucesso!');
+      router.push('/upload');
+    }
+  };
+
+  const saveAnalysis = () => {
+    if (data) {
+      const analysisWithDate = {
+        ...data,
+        analyzedAt: new Date().toISOString(),
+      };
+      localStorage.setItem(
+        'instagram-analysis',
+        JSON.stringify(analysisWithDate)
+      );
+      setData(analysisWithDate);
+      toast.success('Análise salva com sucesso!');
+    }
   };
 
   const exportData = (type: 'csv' | 'json', users: User[]) => {
@@ -278,6 +328,20 @@ export default function AnalyzePage() {
     );
   };
 
+  const handleCardClick = (tabValue: string) => {
+    setSelectedTab(tabValue);
+    // Aguarda um momento para a tab mudar antes de fazer o scroll
+    setTimeout(() => {
+      const element = document.getElementById('detailed-analysis');
+      if (element) {
+        const yOffset = -80; // Offset para compensar o header fixo
+        const y =
+          element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
   return (
     <div className='min-h-screen gradient-bg'>
       <Header
@@ -286,11 +350,29 @@ export default function AnalyzePage() {
           <>
             <Button
               variant='ghost'
+              onClick={saveAnalysis}
+              className='text-white hover:bg-white/20'
+              title='Salvar análise'
+            >
+              <Save className='w-4 h-4 mr-2' />
+              Salvar
+            </Button>
+            <Button
+              variant='ghost'
               onClick={shareStats}
               className='text-white hover:bg-white/20'
             >
               <Share2 className='w-4 h-4 mr-2' />
               Compartilhar
+            </Button>
+            <Button
+              variant='ghost'
+              onClick={clearAnalysis}
+              className='text-white hover:bg-white/20'
+              title='Limpar todos os dados'
+            >
+              <Trash2 className='w-4 h-4 mr-2' />
+              Limpar
             </Button>
             <Button
               variant='ghost'
@@ -305,14 +387,32 @@ export default function AnalyzePage() {
       />
 
       <main className='container mx-auto px-4 py-8'>
+        {/* Data de análise */}
+        {data.analyzedAt && (
+          <div className='text-center mb-4'>
+            <Badge variant='secondary' className='bg-white/20 text-white'>
+              Análise salva em:{' '}
+              {new Date(data.analyzedAt).toLocaleString('pt-BR')}
+            </Badge>
+          </div>
+        )}
+
         {/* Stats Overview */}
         <div className='grid grid-cols-2 md:grid-cols-4 gap-4 mb-8'>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
+            onClick={() => handleCardClick('overview')}
+            className='cursor-pointer transform transition-transform hover:scale-105 group'
+            title='Clique para ver detalhes'
           >
-            <Card>
+            <Card className='hover:shadow-xl transition-shadow relative overflow-hidden'>
+              <div className='absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity'>
+                <div className='bg-blue-500 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1'>
+                  Ver todos <ArrowDown className='w-3 h-3' />
+                </div>
+              </div>
               <CardContent className='p-6'>
                 <div className='flex items-center'>
                   <UserCheck className='h-8 w-8 text-blue-500' />
@@ -333,8 +433,16 @@ export default function AnalyzePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+            onClick={() => handleCardClick('overview')}
+            className='cursor-pointer transform transition-transform hover:scale-105 group'
+            title='Clique para ver detalhes'
           >
-            <Card>
+            <Card className='hover:shadow-xl transition-shadow relative overflow-hidden'>
+              <div className='absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity'>
+                <div className='bg-purple-500 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1'>
+                  Ver todos <ArrowDown className='w-3 h-3' />
+                </div>
+              </div>
               <CardContent className='p-6'>
                 <div className='flex items-center'>
                   <UserCheck className='h-8 w-8 text-purple-500' />
@@ -355,8 +463,16 @@ export default function AnalyzePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            onClick={() => handleCardClick('mutual')}
+            className='cursor-pointer transform transition-transform hover:scale-105 group'
+            title='Clique para ver lista de mútuos'
           >
-            <Card>
+            <Card className='hover:shadow-xl transition-shadow relative overflow-hidden'>
+              <div className='absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity'>
+                <div className='bg-green-500 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1'>
+                  Ver lista <ArrowDown className='w-3 h-3' />
+                </div>
+              </div>
               <CardContent className='p-6'>
                 <div className='flex items-center'>
                   <UserCheck className='h-8 w-8 text-green-500' />
@@ -377,8 +493,16 @@ export default function AnalyzePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
+            onClick={() => handleCardClick('not-following')}
+            className='cursor-pointer transform transition-transform hover:scale-105 group'
+            title='Clique para ver quem não te segue'
           >
-            <Card>
+            <Card className='hover:shadow-xl transition-shadow relative overflow-hidden'>
+              <div className='absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity'>
+                <div className='bg-red-500 text-white text-xs px-2 py-1 rounded-bl-lg flex items-center gap-1'>
+                  Ver lista <ArrowDown className='w-3 h-3' />
+                </div>
+              </div>
               <CardContent className='p-6'>
                 <div className='flex items-center'>
                   <UserMinus className='h-8 w-8 text-red-500' />
@@ -490,7 +614,7 @@ export default function AnalyzePage() {
         </div>
 
         {/* Detailed Analysis */}
-        <Card>
+        <Card id='detailed-analysis' className='scroll-mt-20'>
           <CardHeader>
             <div className='flex justify-between items-center'>
               <CardTitle>Análise Detalhada</CardTitle>
@@ -654,13 +778,13 @@ function UserList({
       {users.length === 0 ? (
         <p className='text-center text-gray-500 py-8'>{emptyMessage}</p>
       ) : (
-        <div className='space-y-2 max-h-96 overflow-y-auto'>
-          {users.slice(0, 100).map((user, index) => (
+        <div className='space-y-2 max-h-[600px] overflow-y-auto'>
+          {users.map((user, index) => (
             <motion.div
               key={user.username}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.01 }}
+              transition={{ delay: Math.min(index * 0.01, 0.3) }}
               className='flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors'
             >
               <div className='flex items-center space-x-3'>
@@ -683,9 +807,9 @@ function UserList({
               {actionButton && actionButton(user)}
             </motion.div>
           ))}
-          {users.length > 100 && (
-            <p className='text-center text-gray-500 text-sm py-2'>
-              Mostrando primeiros 100 de {users.length} usuários
+          {users.length > 50 && (
+            <p className='text-center text-gray-500 text-sm py-2 font-semibold'>
+              Total: {users.length} usuários
             </p>
           )}
         </div>
