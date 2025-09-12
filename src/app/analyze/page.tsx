@@ -17,6 +17,8 @@ import {
   Trash2,
   Save,
   ArrowDown,
+  Upload,
+  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -86,10 +88,8 @@ export default function AnalyzePage() {
         // Se não houver análise salva, tenta processar dados novos
         const savedData = localStorage.getItem('instagram-data');
         if (!savedData) {
-          toast.error(
-            'Dados não encontrados. Faça upload dos arquivos primeiro.'
-          );
-          router.push('/upload');
+          // Não há dados, mas não redireciona - mostra mensagem
+          setIsLoading(false);
           return;
         }
 
@@ -114,13 +114,12 @@ export default function AnalyzePage() {
         toast.success('Análise concluída e salva com sucesso!');
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        toast.error('Erro ao carregar dados');
-        router.push('/upload');
+        setIsLoading(false);
       }
     };
 
     loadData();
-  }, [router]);
+  }, []);
 
   const analyzeData = (followers: any[], following: any[]): AnalysisData => {
     // Normalizar dados do formato Instagram
@@ -297,13 +296,81 @@ export default function AnalyzePage() {
 
   if (!data) {
     return (
-      <div className='min-h-screen gradient-bg flex items-center justify-center'>
-        <div className='text-center'>
-          <p className='text-white text-lg'>Erro ao carregar dados</p>
-          <Button onClick={() => router.push('/upload')} className='mt-4'>
-            Voltar ao Upload
-          </Button>
-        </div>
+      <div className='min-h-screen gradient-bg'>
+        <Header
+          subtitle='Análise dos seguidores'
+          rightContent={
+            <Button
+              variant='ghost'
+              onClick={() => router.push('/')}
+              className='text-white hover:bg-white/20'
+            >
+              <ArrowLeft className='w-4 h-4 mr-2' />
+              Voltar ao Início
+            </Button>
+          }
+        />
+
+        <main className='container mx-auto px-4 py-16'>
+          <div className='text-center mb-12'>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='mb-8'
+            >
+              <div className='w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6'>
+                <BarChart3 className='w-10 h-10 text-white' />
+              </div>
+              <h2 className='text-white text-3xl font-bold mb-4'>
+                Nenhuma análise encontrada
+              </h2>
+              <p className='text-white text-lg opacity-90 max-w-md mx-auto'>
+                Você ainda não possui nenhuma análise salva. Faça upload dos
+                seus arquivos do Instagram para começar.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className='max-w-md mx-auto'
+            >
+              <Card className='p-6 text-center hover:shadow-xl transition-shadow'>
+                <div className='w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <Upload className='w-6 h-6 text-green-600' />
+                </div>
+                <h3 className='font-semibold text-lg mb-2'>Upload Seguro</h3>
+                <p className='text-gray-600 text-sm mb-4'>
+                  Seus dados são processados localmente, sem envio para
+                  servidores
+                </p>
+                <Button
+                  onClick={() => router.push('/upload')}
+                  className='bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white'
+                >
+                  Fazer Upload →
+                </Button>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className='mt-8'
+            >
+              <Button
+                variant='ghost'
+                onClick={() => router.push('/tutorial')}
+                className='text-white hover:bg-white/20'
+              >
+                <BookOpen className='w-4 h-4 mr-2' />
+                Ver Tutorial
+              </Button>
+            </motion.div>
+          </div>
+        </main>
       </div>
     );
   }

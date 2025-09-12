@@ -20,12 +20,20 @@ export default function HomePage() {
                 <Users className='text-purple-600 w-5 h-5' />
               </div>
               <div>
-                <h1 className='text-white font-bold text-xl'>FollowTracker</h1>
+                <h1 className='text-white font-bold text-xl'>FollowerScan</h1>
                 <p className='text-white text-xs opacity-80'>
                   Gerencie seus seguidores do Instagram
                 </p>
               </div>
             </div>
+            <Button
+              onClick={() => router.push('/analyze')}
+              variant='ghost'
+              className='text-white hover:bg-white/20'
+            >
+              <BarChart3 className='w-4 h-4 mr-2' />
+              Ver Análises
+            </Button>
           </div>
         </div>
       </header>
@@ -133,7 +141,7 @@ export default function HomePage() {
               <Button
                 variant='ghost'
                 className='mt-4'
-                onClick={() => router.push('/upload')}
+                onClick={() => router.push('/analyze')}
               >
                 Ver Análise →
               </Button>

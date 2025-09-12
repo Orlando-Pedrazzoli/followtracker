@@ -1,4 +1,4 @@
-# FollowTracker - Instagram Followers Manager
+# FollowerScan - Instagram Followers Manager
 
 Uma aplicação Next.js moderna para análise de seguidores do Instagram de forma privada e segura.
 
@@ -9,6 +9,7 @@ Uma aplicação Next.js moderna para análise de seguidores do Instagram de form
 - **Análise Completa**: Dashboard com estatísticas detalhadas dos seguidores
 - **Visualizações**: Gráficos e charts para melhor compreensão dos dados
 - **Export de Dados**: Exportação dos resultados em CSV/JSON
+- **Salvamento Local**: Análises salvas no navegador para acesso posterior
 - **100% Privado**: Processamento local, sem envio de dados para servidores
 
 ## 🛠️ Tecnologias Utilizadas
@@ -28,7 +29,7 @@ Uma aplicação Next.js moderna para análise de seguidores do Instagram de form
 
 ```bash
 git clone [repository-url]
-cd followtracker
+cd followerscan
 ```
 
 2. Instale as dependências:
@@ -67,8 +68,10 @@ yarn dev
 
 - Visualize estatísticas completas dos seus seguidores
 - Explore diferentes categorias (mútuos, não seguem de volta, etc.)
+- Clique nos cards de estatísticas para navegação rápida
 - Exporte listas específicas em CSV/JSON
 - Compartilhe suas estatísticas
+- As análises são salvas automaticamente no navegador
 
 ## 📊 Análises Disponíveis
 
@@ -78,18 +81,20 @@ yarn dev
 - **Não Sigo de Volta**: Seus seguidores que você não segue
 - **Taxa de Engajamento**: Percentual de seguidores mútuos
 - **Insights Personalizados**: Sugestões baseadas nos seus dados
+- **Listas Completas**: Visualização de todos os usuários em cada categoria
+- **Navegação Rápida**: Clique nos cards para ir direto às listas
 
 ## 🔒 Privacidade e Segurança
 
 - **Processamento Local**: Todos os dados são processados no seu navegador
 - **Sem Servidores**: Nenhuma informação é enviada para nossos servidores
-- **Dados Temporários**: Os arquivos ficam apenas no localStorage
+- **Dados Persistentes**: Análises salvas localmente no localStorage
 - **Controle Total**: Você pode limpar os dados a qualquer momento
 
 ## 📁 Estrutura do Projeto
 
 ```
-followtracker/
+followerscan/
 ├── src/
 │   ├── app/
 │   │   ├── tutorial/          # Página do tutorial
@@ -128,6 +133,7 @@ A aplicação utiliza uma biblioteca de componentes personalizados baseada em:
 - **Image Optimization**: Otimização automática de imagens
 - **Bundle Analysis**: Análise e otimização do bundle
 - **Caching**: Estratégias de cache para melhor performance
+- **LocalStorage**: Análises salvas para acesso rápido
 
 ## 🔧 Scripts Disponíveis
 
@@ -138,13 +144,13 @@ npm run start        # Servidor de produção
 npm run lint         # Verificação de código
 ```
 
-## 🌟 Futuras Melhorias
+## 🌟 Novas Funcionalidades
 
-- [ ] **Análise Temporal**: Histórico de crescimento de seguidores
-- [ ] **Comparações**: Benchmarking com outros perfis
-- [ ] **Automação**: Agendamento de análises
-- [ ] **Relatórios**: PDFs com insights detalhados
-- [ ] **Integração API**: Conexão direta com Instagram (se disponível)
+- ✅ **Salvamento Automático**: Análises salvas no localStorage
+- ✅ **Listas Completas**: Visualização de todos os usuários
+- ✅ **Navegação Inteligente**: Clique nos cards para scroll suave
+- ✅ **Estado Vazio Melhorado**: Interface amigável quando não há análises
+- ✅ **Link Rápido**: Acesso direto às análises do header
 
 ## 🤝 Contribuição
 

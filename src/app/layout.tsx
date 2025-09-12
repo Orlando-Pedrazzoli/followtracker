@@ -5,10 +5,17 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'FollowTracker - Gerencie seus seguidores do Instagram',
+  title: 'FollowerScan - Gerencie seus seguidores do Instagram',
   description:
     'Analise seus seguidores do Instagram de forma privada e segura. Descubra quem não está te seguindo de volta.',
-  keywords: ['instagram', 'seguidores', 'followers', 'análise', 'privacidade'],
+  keywords: [
+    'instagram',
+    'seguidores',
+    'followers',
+    'análise',
+    'privacidade',
+    'scan',
+  ],
 };
 
 export default function RootLayout({

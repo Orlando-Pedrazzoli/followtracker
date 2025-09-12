@@ -26,7 +26,7 @@ export function Header({
               <Users className='text-purple-600 w-5 h-5' />
             </div>
             <div className='text-left'>
-              <h1 className='text-white font-bold text-xl'>FollowTracker</h1>
+              <h1 className='text-white font-bold text-xl'>FollowerScan</h1>
               <p className='text-white text-xs opacity-80'>{subtitle}</p>
             </div>
           </button>
