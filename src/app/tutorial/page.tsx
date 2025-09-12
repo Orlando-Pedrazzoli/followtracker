@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Users,
   Settings,
   UserCircle,
   CheckSquare,
@@ -28,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Header } from '@/components/ui/header';
 
 const steps = [
   {
@@ -91,28 +91,15 @@ export default function TutorialPage() {
 
   return (
     <div className='min-h-screen gradient-bg'>
-      {/* Header */}
-      <header className='glass-effect sticky top-0 z-50'>
-        <div className='container mx-auto px-4 py-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-3'>
-              <div className='w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg'>
-                <Users className='text-purple-600 w-5 h-5' />
-              </div>
-              <div>
-                <h1 className='text-white font-bold text-xl'>FollowTracker</h1>
-                <p className='text-white text-xs opacity-80'>
-                  Gerencie seus seguidores
-                </p>
-              </div>
-            </div>
-            <div className='text-white text-sm hidden md:block font-medium'>
-              <BookOpen className='inline w-4 h-4 mr-1' />
-              Tutorial Completo
-            </div>
+      <Header
+        subtitle='Tutorial Completo'
+        rightContent={
+          <div className='text-white text-sm hidden md:block font-medium'>
+            <BookOpen className='inline w-4 h-4 mr-1' />
+            Tutorial Completo
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <main className='container mx-auto px-4 py-8'>
         {/* Hero Section */}
@@ -251,7 +238,7 @@ export default function TutorialPage() {
   );
 }
 
-// Step Components
+// Step Components (mantidos os mesmos)
 function StepOne() {
   const step = steps[0];
   const Icon = step.icon;

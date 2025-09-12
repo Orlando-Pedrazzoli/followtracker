@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  Users,
   UserMinus,
   UserCheck,
   TrendingUp,
@@ -21,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import { Header } from '@/components/ui/header';
 import {
   PieChart,
   Pie,
@@ -253,42 +253,29 @@ export default function AnalyzePage() {
 
   return (
     <div className='min-h-screen gradient-bg'>
-      {/* Header */}
-      <header className='glass-effect sticky top-0 z-50'>
-        <div className='container mx-auto px-4 py-4'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center space-x-3'>
-              <div className='w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-lg'>
-                <Users className='text-purple-600 w-5 h-5' />
-              </div>
-              <div>
-                <h1 className='text-white font-bold text-xl'>FollowTracker</h1>
-                <p className='text-white text-xs opacity-80'>
-                  Análise dos seguidores
-                </p>
-              </div>
-            </div>
-            <div className='flex items-center space-x-2'>
-              <Button
-                variant='ghost'
-                onClick={shareStats}
-                className='text-white hover:bg-white/20'
-              >
-                <Share2 className='w-4 h-4 mr-2' />
-                Compartilhar
-              </Button>
-              <Button
-                variant='ghost'
-                onClick={() => router.push('/upload')}
-                className='text-white hover:bg-white/20'
-              >
-                <ArrowLeft className='w-4 h-4 mr-2' />
-                Nova Análise
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header
+        subtitle='Análise dos seguidores'
+        rightContent={
+          <>
+            <Button
+              variant='ghost'
+              onClick={shareStats}
+              className='text-white hover:bg-white/20'
+            >
+              <Share2 className='w-4 h-4 mr-2' />
+              Compartilhar
+            </Button>
+            <Button
+              variant='ghost'
+              onClick={() => router.push('/upload')}
+              className='text-white hover:bg-white/20'
+            >
+              <ArrowLeft className='w-4 h-4 mr-2' />
+              Nova Análise
+            </Button>
+          </>
+        }
+      />
 
       <main className='container mx-auto px-4 py-8'>
         {/* Stats Overview */}
@@ -301,7 +288,7 @@ export default function AnalyzePage() {
             <Card>
               <CardContent className='p-6'>
                 <div className='flex items-center'>
-                  <Users className='h-8 w-8 text-blue-500' />
+                  <UserCheck className='h-8 w-8 text-blue-500' />
                   <div className='ml-4'>
                     <p className='text-sm font-medium text-muted-foreground'>
                       Seguidores
