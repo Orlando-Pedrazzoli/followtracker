@@ -13,6 +13,8 @@ import {
   ArrowRight,
   FileText,
   X,
+  FileArchive,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/ui/header';
 import { Footer } from '@/components/ui/footer';
 import toast from 'react-hot-toast';
+import JSZip from 'jszip';
 
 interface UploadedFile {
   name: string;
@@ -32,99 +35,199 @@ interface UploadedFile {
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const router = useRouter();
 
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      acceptedFiles.forEach(file => {
-        if (!file.name.endsWith('.json')) {
-          toast.error(`${file.name} não é um arquivo JSON válido`);
-          return;
+  // Função para processar arquivo JSON
+  const processJsonFile = (
+    file: File,
+    content: string
+  ): UploadedFile | null => {
+    try {
+      const jsonData = JSON.parse(content);
+      let fileType: 'followers' | 'following';
+      let processedData: any[];
+
+      const fileName = file.name.toLowerCase();
+
+      // Verificar se é followers_1, followers_2, etc ou apenas followers
+      if (fileName.includes('follower') && !fileName.includes('following')) {
+        fileType = 'followers';
+
+        // O arquivo followers_1.json é um array direto
+        if (Array.isArray(jsonData)) {
+          processedData = jsonData;
+        } else if (jsonData.relationships_followers) {
+          processedData = jsonData.relationships_followers;
+        } else if (jsonData.followers) {
+          processedData = jsonData.followers;
+        } else {
+          processedData = (Object.values(jsonData)[0] as any[]) || jsonData;
         }
+      } else if (fileName.includes('following')) {
+        fileType = 'following';
 
-        const reader = new FileReader();
-        reader.onload = e => {
-          try {
-            const content = e.target?.result as string;
-            const jsonData = JSON.parse(content);
+        // O arquivo following.json tem a chave relationships_following
+        if (jsonData.relationships_following) {
+          processedData = jsonData.relationships_following;
+        } else if (Array.isArray(jsonData)) {
+          processedData = jsonData;
+        } else if (jsonData.following) {
+          processedData = jsonData.following;
+        } else {
+          processedData = (Object.values(jsonData)[0] as any[]) || jsonData;
+        }
+      } else {
+        toast.error(
+          `Não foi possível identificar o tipo do arquivo ${file.name}. Use arquivos followers_*.json ou following.json`
+        );
+        return null;
+      }
 
-            let fileType: 'followers' | 'following';
-            let processedData: any[];
+      // Verificar se já existe um arquivo do mesmo tipo
+      if (files.some(f => f.type === fileType)) {
+        toast.error(
+          `Já existe um arquivo de ${
+            fileType === 'followers' ? 'seguidores' : 'seguindo'
+          } carregado`
+        );
+        return null;
+      }
 
-            // Detectar tipo de arquivo baseado no nome e estrutura
-            const fileName = file.name.toLowerCase();
+      return {
+        name: file.name,
+        size: file.size,
+        type: fileType,
+        data: processedData,
+        file,
+      };
+    } catch (error) {
+      console.error('Erro ao processar arquivo:', error);
+      toast.error(`Erro ao processar ${file.name}: arquivo JSON inválido`);
+      return null;
+    }
+  };
 
-            // Verificar se é followers_1, followers_2, etc ou apenas followers
-            if (
-              fileName.includes('follower') &&
-              !fileName.includes('following')
-            ) {
-              fileType = 'followers';
+  // Função para processar arquivo ZIP
+  const processZipFile = async (file: File) => {
+    setIsExtracting(true);
+    try {
+      const zip = new JSZip();
+      const zipContent = await zip.loadAsync(file);
 
-              // O arquivo followers_1.json é um array direto
-              if (Array.isArray(jsonData)) {
-                processedData = jsonData;
-              } else if (jsonData.relationships_followers) {
-                // Formato alternativo do Instagram
-                processedData = jsonData.relationships_followers;
-              } else if (jsonData.followers) {
-                processedData = jsonData.followers;
-              } else {
-                // Tentar extrair dados de qualquer estrutura
-                processedData =
-                  (Object.values(jsonData)[0] as any[]) || jsonData;
-              }
-            } else if (fileName.includes('following')) {
-              fileType = 'following';
+      const extractedFiles: UploadedFile[] = [];
+      let foundFollowers = false;
+      let foundFollowing = false;
 
-              // O arquivo following.json tem a chave relationships_following
-              if (jsonData.relationships_following) {
-                processedData = jsonData.relationships_following;
-              } else if (Array.isArray(jsonData)) {
-                processedData = jsonData;
-              } else if (jsonData.following) {
-                processedData = jsonData.following;
-              } else {
-                // Tentar extrair dados de qualquer estrutura
-                processedData =
-                  (Object.values(jsonData)[0] as any[]) || jsonData;
-              }
-            } else {
-              toast.error(
-                `Não foi possível identificar o tipo do arquivo ${file.name}. Use arquivos followers_1.json ou following.json`
-              );
-              return;
-            }
+      // Procurar por arquivos JSON no ZIP
+      for (const [fileName, zipEntry] of Object.entries(zipContent.files)) {
+        if (zipEntry.dir) continue; // Pular diretórios
 
-            // Verificar se já existe um arquivo do mesmo tipo
-            if (files.some(f => f.type === fileType)) {
-              toast.error(
-                `Já existe um arquivo de ${
-                  fileType === 'followers' ? 'seguidores' : 'seguindo'
-                } carregado`
-              );
-              return;
-            }
+        const lowerFileName = fileName.toLowerCase();
 
-            const newFile: UploadedFile = {
-              name: file.name,
-              size: file.size,
-              type: fileType,
-              data: processedData,
-              file,
-            };
+        // Procurar por followers*.json ou following.json em qualquer pasta
+        if (lowerFileName.endsWith('.json')) {
+          // Verificar se é um arquivo de followers ou following
+          const isFollowers =
+            lowerFileName.includes('followers_') ||
+            (lowerFileName.includes('followers') &&
+              !lowerFileName.includes('following'));
+          const isFollowing = lowerFileName.includes('following');
 
-            setFiles(prev => [...prev, newFile]);
-            toast.success(`Arquivo ${file.name} carregado com sucesso!`);
-          } catch (error) {
-            console.error('Erro ao processar arquivo:', error);
-            toast.error(
-              `Erro ao processar ${file.name}: arquivo JSON inválido`
+          if (isFollowers && !foundFollowers) {
+            const content = await zipEntry.async('string');
+            const fakeFile = new File(
+              [content],
+              fileName.split('/').pop() || 'followers.json',
+              { type: 'application/json' }
             );
+            const processedFile = processJsonFile(fakeFile, content);
+
+            if (processedFile && !files.some(f => f.type === 'followers')) {
+              extractedFiles.push(processedFile);
+              foundFollowers = true;
+              toast.success(
+                `✅ Arquivo de seguidores encontrado: ${fileName
+                  .split('/')
+                  .pop()}`
+              );
+            }
+          } else if (isFollowing && !foundFollowing) {
+            const content = await zipEntry.async('string');
+            const fakeFile = new File(
+              [content],
+              fileName.split('/').pop() || 'following.json',
+              { type: 'application/json' }
+            );
+            const processedFile = processJsonFile(fakeFile, content);
+
+            if (processedFile && !files.some(f => f.type === 'following')) {
+              extractedFiles.push(processedFile);
+              foundFollowing = true;
+              toast.success(
+                `✅ Arquivo de seguindo encontrado: ${fileName
+                  .split('/')
+                  .pop()}`
+              );
+            }
           }
-        };
-        reader.readAsText(file);
-      });
+        }
+      }
+
+      if (extractedFiles.length === 0) {
+        toast.error(
+          'Nenhum arquivo válido encontrado no ZIP. Certifique-se de que o ZIP contém followers_*.json e following.json'
+        );
+      } else {
+        setFiles(prev => [...prev, ...extractedFiles]);
+
+        if (extractedFiles.length === 2) {
+          toast.success('🎉 Ambos os arquivos foram extraídos com sucesso!');
+        } else if (!foundFollowers) {
+          toast.info(
+            '⚠️ Arquivo de seguidores não encontrado. Adicione manualmente.'
+          );
+        } else if (!foundFollowing) {
+          toast.info(
+            '⚠️ Arquivo de seguindo não encontrado. Adicione manualmente.'
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao processar arquivo ZIP:', error);
+      toast.error(
+        'Erro ao extrair arquivo ZIP. Tente fazer upload dos arquivos JSON individualmente.'
+      );
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      for (const file of acceptedFiles) {
+        // Verificar se é um arquivo ZIP
+        if (file.name.toLowerCase().endsWith('.zip')) {
+          await processZipFile(file);
+        }
+        // Processar arquivo JSON normal
+        else if (file.name.endsWith('.json')) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const content = e.target?.result as string;
+            const processedFile = processJsonFile(file, content);
+            if (processedFile) {
+              setFiles(prev => [...prev, processedFile]);
+              toast.success(`Arquivo ${file.name} carregado com sucesso!`);
+            }
+          };
+          reader.readAsText(file);
+        } else {
+          toast.error(
+            `${file.name} não é um arquivo válido. Use arquivos .json ou .zip`
+          );
+        }
+      }
     },
     [files]
   );
@@ -133,6 +236,8 @@ export default function UploadPage() {
     onDrop,
     accept: {
       'application/json': ['.json'],
+      'application/zip': ['.zip'],
+      'application/x-zip-compressed': ['.zip'],
     },
     multiple: true,
   });
@@ -145,7 +250,7 @@ export default function UploadPage() {
   const handleAnalyze = async () => {
     if (files.length !== 2) {
       toast.error(
-        'É necessário carregar ambos os arquivos (followers_1.json e following.json)'
+        'É necessário carregar ambos os arquivos (followers e following)'
       );
       return;
     }
@@ -213,9 +318,9 @@ export default function UploadPage() {
             transition={{ delay: 0.1 }}
             className='text-white text-lg opacity-90 max-w-2xl mx-auto drop-shadow'
           >
-            Carregue os arquivos <strong>followers_1.json</strong> (ou
-            followers_2.json, etc) e <strong>following.json</strong> que você
-            baixou do Instagram
+            <strong>🎉 Novo!</strong> Agora você pode arrastar o arquivo{' '}
+            <strong>ZIP do Instagram</strong> diretamente ou fazer upload dos
+            arquivos JSON individualmente
           </motion.p>
         </div>
 
@@ -236,6 +341,8 @@ export default function UploadPage() {
                   ${
                     isDragActive
                       ? 'border-blue-500 bg-blue-50'
+                      : isExtracting
+                      ? 'border-purple-500 bg-purple-50 animate-pulse'
                       : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
                   }
                 `}
@@ -245,23 +352,79 @@ export default function UploadPage() {
                   animate={isDragActive ? { scale: 1.05 } : { scale: 1 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <FileText className='w-16 h-16 mx-auto mb-4 text-gray-400' />
-                  {isDragActive ? (
-                    <p className='text-lg text-blue-600 font-medium'>
-                      Solte os arquivos aqui...
-                    </p>
+                  {isExtracting ? (
+                    <>
+                      <Loader2 className='w-16 h-16 mx-auto mb-4 text-purple-500 animate-spin' />
+                      <p className='text-lg text-purple-600 font-medium'>
+                        Extraindo arquivos do ZIP...
+                      </p>
+                      <p className='text-sm text-purple-500 mt-2'>
+                        Aguarde um momento
+                      </p>
+                    </>
                   ) : (
                     <>
-                      <p className='text-lg font-medium mb-2'>
-                        Arraste e solte os arquivos aqui, ou clique para
-                        selecionar
-                      </p>
-                      <p className='text-sm text-gray-600'>
-                        Arquivos suportados: .json (máx. 10MB cada)
-                      </p>
+                      <div className='flex justify-center gap-4 mb-4'>
+                        <FileArchive className='w-16 h-16 text-purple-400' />
+                        <FileText className='w-16 h-16 text-gray-400' />
+                      </div>
+                      {isDragActive ? (
+                        <p className='text-lg text-blue-600 font-medium'>
+                          Solte os arquivos aqui...
+                        </p>
+                      ) : (
+                        <>
+                          <p className='text-lg font-medium mb-2'>
+                            Arraste o{' '}
+                            <span className='text-purple-600 font-bold'>
+                              arquivo ZIP do Instagram
+                            </span>{' '}
+                            aqui
+                          </p>
+                          <p className='text-sm text-gray-600 mb-2'>
+                            ou arquivos JSON individuais
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            Suportamos: .zip (recomendado) ou .json (manual)
+                          </p>
+                        </>
+                      )}
                     </>
                   )}
                 </motion.div>
+              </div>
+
+              {/* Info Cards */}
+              <div className='mt-6 grid md:grid-cols-2 gap-4'>
+                <div className='p-4 bg-purple-50 border border-purple-200 rounded-lg'>
+                  <div className='flex items-start space-x-3'>
+                    <FileArchive className='w-6 h-6 text-purple-600 mt-0.5' />
+                    <div>
+                      <p className='font-semibold text-purple-900'>
+                        Método Recomendado
+                      </p>
+                      <p className='text-sm text-purple-700 mt-1'>
+                        Arraste o arquivo ZIP baixado do Instagram diretamente.
+                        Extraímos automaticamente os arquivos necessários!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+                  <div className='flex items-start space-x-3'>
+                    <FileText className='w-6 h-6 text-gray-600 mt-0.5' />
+                    <div>
+                      <p className='font-semibold text-gray-900'>
+                        Método Alternativo
+                      </p>
+                      <p className='text-sm text-gray-700 mt-1'>
+                        Extraia o ZIP manualmente e faça upload de
+                        followers_*.json e following.json
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Required Files Info */}
@@ -281,9 +444,13 @@ export default function UploadPage() {
                     )}
                   </div>
                   <div>
-                    <p className='font-medium'>followers_1.json</p>
+                    <p className='font-medium'>Seguidores</p>
                     <p className='text-sm text-gray-600'>
-                      Lista de quem te segue
+                      {files.some(f => f.type === 'followers')
+                        ? `✅ ${
+                            files.find(f => f.type === 'followers')?.data.length
+                          } registros`
+                        : 'Aguardando arquivo'}
                     </p>
                   </div>
                 </div>
@@ -303,9 +470,13 @@ export default function UploadPage() {
                     )}
                   </div>
                   <div>
-                    <p className='font-medium'>following.json</p>
+                    <p className='font-medium'>Seguindo</p>
                     <p className='text-sm text-gray-600'>
-                      Lista de quem você segue
+                      {files.some(f => f.type === 'following')
+                        ? `✅ ${
+                            files.find(f => f.type === 'following')?.data.length
+                          } registros`
+                        : 'Aguardando arquivo'}
                     </p>
                   </div>
                 </div>
@@ -393,16 +564,39 @@ export default function UploadPage() {
                       {2 - files.length > 1 ? 's' : ''}
                     </p>
                     <p className='text-sm text-amber-700'>
-                      Carregue o arquivo{' '}
                       {files.some(f => f.type === 'followers')
-                        ? 'following.json'
-                        : 'followers_1.json (ou followers_2.json)'}{' '}
-                      para continuar
+                        ? 'Arquivo de "seguindo" não encontrado'
+                        : 'Arquivo de "seguidores" não encontrado'}
                     </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Success Message when both files are loaded */}
+          {files.length === 2 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className='mb-8'
+            >
+              <Card className='border-green-200 bg-green-50'>
+                <CardContent className='pt-6'>
+                  <div className='flex items-center space-x-3'>
+                    <CheckCircle className='w-6 h-6 text-green-600' />
+                    <div>
+                      <p className='font-medium text-green-800'>
+                        Tudo pronto para análise!
+                      </p>
+                      <p className='text-sm text-green-700'>
+                        Ambos os arquivos foram carregados com sucesso
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
           {/* Action Buttons */}
