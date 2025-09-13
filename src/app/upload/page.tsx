@@ -29,7 +29,7 @@ interface UploadedFile {
   size: number;
   type: 'followers' | 'following';
   data: any[];
-  file: File;
+  file: File | { name: string; size: number }; // Aceitar File ou objeto simulado
 }
 
 export default function UploadPage() {
@@ -38,20 +38,25 @@ export default function UploadPage() {
   const [isExtracting, setIsExtracting] = useState(false);
   const router = useRouter();
 
-  // Função para processar arquivo JSON
-  const processJsonFile = (
-    file: File,
-    content: string
+  // Função para processar conteúdo JSON
+  const processJsonContent = (
+    fileName: string,
+    content: string,
+    fileSize: number = 0,
+    originalFile?: File
   ): UploadedFile | null => {
     try {
       const jsonData = JSON.parse(content);
       let fileType: 'followers' | 'following';
       let processedData: any[];
 
-      const fileName = file.name.toLowerCase();
+      const lowerFileName = fileName.toLowerCase();
 
       // Verificar se é followers_1, followers_2, etc ou apenas followers
-      if (fileName.includes('follower') && !fileName.includes('following')) {
+      if (
+        lowerFileName.includes('follower') &&
+        !lowerFileName.includes('following')
+      ) {
         fileType = 'followers';
 
         // O arquivo followers_1.json é um array direto
@@ -64,7 +69,7 @@ export default function UploadPage() {
         } else {
           processedData = (Object.values(jsonData)[0] as any[]) || jsonData;
         }
-      } else if (fileName.includes('following')) {
+      } else if (lowerFileName.includes('following')) {
         fileType = 'following';
 
         // O arquivo following.json tem a chave relationships_following
@@ -79,7 +84,7 @@ export default function UploadPage() {
         }
       } else {
         toast.error(
-          `Não foi possível identificar o tipo do arquivo ${file.name}. Use arquivos followers_*.json ou following.json`
+          `Não foi possível identificar o tipo do arquivo ${fileName}. Use arquivos followers_*.json ou following.json`
         );
         return null;
       }
@@ -95,17 +100,28 @@ export default function UploadPage() {
       }
 
       return {
-        name: file.name,
-        size: file.size,
+        name: fileName,
+        size: fileSize || content.length,
         type: fileType,
         data: processedData,
-        file,
+        file: originalFile || {
+          name: fileName,
+          size: fileSize || content.length,
+        },
       };
     } catch (error) {
       console.error('Erro ao processar arquivo:', error);
-      toast.error(`Erro ao processar ${file.name}: arquivo JSON inválido`);
+      toast.error(`Erro ao processar ${fileName}: arquivo JSON inválido`);
       return null;
     }
+  };
+
+  // Função para processar arquivo JSON do upload direto
+  const processJsonFile = (
+    file: File,
+    content: string
+  ): UploadedFile | null => {
+    return processJsonContent(file.name, content, file.size, file);
   };
 
   // Função para processar arquivo ZIP
@@ -136,38 +152,36 @@ export default function UploadPage() {
 
           if (isFollowers && !foundFollowers) {
             const content = await zipEntry.async('string');
-            const fakeFile = new File(
-              [content],
-              fileName.split('/').pop() || 'followers.json',
-              { type: 'application/json' }
+            const extractedFileName =
+              fileName.split('/').pop() || 'followers.json';
+            const processedFile = processJsonContent(
+              extractedFileName,
+              content,
+              content.length
             );
-            const processedFile = processJsonFile(fakeFile, content);
 
             if (processedFile && !files.some(f => f.type === 'followers')) {
               extractedFiles.push(processedFile);
               foundFollowers = true;
               toast.success(
-                `✅ Arquivo de seguidores encontrado: ${fileName
-                  .split('/')
-                  .pop()}`
+                `✅ Arquivo de seguidores encontrado: ${extractedFileName}`
               );
             }
           } else if (isFollowing && !foundFollowing) {
             const content = await zipEntry.async('string');
-            const fakeFile = new File(
-              [content],
-              fileName.split('/').pop() || 'following.json',
-              { type: 'application/json' }
+            const extractedFileName =
+              fileName.split('/').pop() || 'following.json';
+            const processedFile = processJsonContent(
+              extractedFileName,
+              content,
+              content.length
             );
-            const processedFile = processJsonFile(fakeFile, content);
 
             if (processedFile && !files.some(f => f.type === 'following')) {
               extractedFiles.push(processedFile);
               foundFollowing = true;
               toast.success(
-                `✅ Arquivo de seguindo encontrado: ${fileName
-                  .split('/')
-                  .pop()}`
+                `✅ Arquivo de seguindo encontrado: ${extractedFileName}`
               );
             }
           }
@@ -184,12 +198,14 @@ export default function UploadPage() {
         if (extractedFiles.length === 2) {
           toast.success('🎉 Ambos os arquivos foram extraídos com sucesso!');
         } else if (!foundFollowers) {
-          toast.info(
-            '⚠️ Arquivo de seguidores não encontrado. Adicione manualmente.'
+          toast(
+            '⚠️ Arquivo de seguidores não encontrado. Adicione manualmente.',
+            { icon: '📋' }
           );
         } else if (!foundFollowing) {
-          toast.info(
-            '⚠️ Arquivo de seguindo não encontrado. Adicione manualmente.'
+          toast(
+            '⚠️ Arquivo de seguindo não encontrado. Adicione manualmente.',
+            { icon: '📋' }
           );
         }
       }
