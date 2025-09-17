@@ -15,237 +15,247 @@ import {
   X,
   FileArchive,
   Loader2,
+  Shield,
+  Users,
+  UserCheck,
+  UserMinus,
+  Hash,
+  Ban,
+  EyeOff,
+  Ghost,
+  Star,
+  UserX,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/ui/header';
 import { Footer } from '@/components/ui/footer';
+import { Progress } from '@/components/ui/progress';
 import toast from 'react-hot-toast';
 import JSZip from 'jszip';
+import {
+  InstagramDataParser,
+  InstagramAnalyzer,
+  HistoryManager,
+} from '@/lib/instagram-parser';
+import { InstagramDataComplete } from '@/types/instagram';
 
-interface UploadedFile {
+interface FileTypeInfo {
+  key: keyof InstagramDataComplete;
   name: string;
-  size: number;
-  type: 'followers' | 'following';
-  data: any[];
-  file: File | { name: string; size: number }; // Aceitar File ou objeto simulado
+  fileName: string;
+  icon: any;
+  color: string;
+  required: boolean;
 }
 
+const FILE_TYPES: FileTypeInfo[] = [
+  {
+    key: 'followers',
+    name: 'Seguidores',
+    fileName: 'followers_1.json',
+    icon: Users,
+    color: 'text-blue-500',
+    required: true,
+  },
+  {
+    key: 'following',
+    name: 'Seguindo',
+    fileName: 'following.json',
+    icon: UserCheck,
+    color: 'text-purple-500',
+    required: true,
+  },
+  {
+    key: 'closeFriends',
+    name: 'Amigos Próximos',
+    fileName: 'close_friends.json',
+    icon: Star,
+    color: 'text-yellow-500',
+    required: false,
+  },
+  {
+    key: 'blockedProfiles',
+    name: 'Bloqueados',
+    fileName: 'blocked_profiles.json',
+    icon: Ban,
+    color: 'text-red-500',
+    required: false,
+  },
+  {
+    key: 'recentlyUnfollowed',
+    name: 'Unfollows Recentes',
+    fileName: 'recently_unfollowed_profiles.json',
+    icon: UserMinus,
+    color: 'text-orange-500',
+    required: false,
+  },
+  {
+    key: 'followRequestsReceived',
+    name: 'Solicitações Recebidas',
+    fileName: "follow_requests_you've_received.json",
+    icon: Clock,
+    color: 'text-cyan-500',
+    required: false,
+  },
+  {
+    key: 'pendingFollowRequests',
+    name: 'Solicitações Pendentes',
+    fileName: 'pending_follow_requests.json',
+    icon: Clock,
+    color: 'text-indigo-500',
+    required: false,
+  },
+  {
+    key: 'recentFollowRequests',
+    name: 'Solicitações Recentes',
+    fileName: 'recent_follow_requests.json',
+    icon: Clock,
+    color: 'text-teal-500',
+    required: false,
+  },
+  {
+    key: 'hideStoryFrom',
+    name: 'Stories Ocultos',
+    fileName: 'hide_story_from.json',
+    icon: EyeOff,
+    color: 'text-gray-500',
+    required: false,
+  },
+  {
+    key: 'followingHashtags',
+    name: 'Hashtags',
+    fileName: 'following_hashtags.json',
+    icon: Hash,
+    color: 'text-green-500',
+    required: false,
+  },
+  {
+    key: 'restrictedProfiles',
+    name: 'Restritos',
+    fileName: 'restricted_profiles.json',
+    icon: Shield,
+    color: 'text-pink-500',
+    required: false,
+  },
+  {
+    key: 'removedSuggestions',
+    name: 'Sugestões Removidas',
+    fileName: 'removed_suggestions.json',
+    icon: UserX,
+    color: 'text-amber-500',
+    required: false,
+  },
+];
+
 export default function UploadPage() {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<
+    Map<keyof InstagramDataComplete, any>
+  >(new Map());
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
 
-  // Função para processar conteúdo JSON
-  const processJsonContent = (
-    fileName: string,
-    content: string,
-    fileSize: number = 0,
-    originalFile?: File
-  ): UploadedFile | null => {
-    try {
-      const jsonData = JSON.parse(content);
-      let fileType: 'followers' | 'following';
-      let processedData: any[];
+  // Calcular progresso
+  const requiredFiles = FILE_TYPES.filter(f => f.required);
+  const uploadedRequired = requiredFiles.filter(f => uploadedFiles.has(f.key));
+  const progress = (uploadedFiles.size / FILE_TYPES.length) * 100;
+  const canAnalyze = uploadedRequired.length === requiredFiles.length;
 
-      const lowerFileName = fileName.toLowerCase();
-
-      // Verificar se é followers_1, followers_2, etc ou apenas followers
-      if (
-        lowerFileName.includes('follower') &&
-        !lowerFileName.includes('following')
-      ) {
-        fileType = 'followers';
-
-        // O arquivo followers_1.json é um array direto
-        if (Array.isArray(jsonData)) {
-          processedData = jsonData;
-        } else if (jsonData.relationships_followers) {
-          processedData = jsonData.relationships_followers;
-        } else if (jsonData.followers) {
-          processedData = jsonData.followers;
-        } else {
-          processedData = (Object.values(jsonData)[0] as any[]) || jsonData;
-        }
-      } else if (lowerFileName.includes('following')) {
-        fileType = 'following';
-
-        // O arquivo following.json tem a chave relationships_following
-        if (jsonData.relationships_following) {
-          processedData = jsonData.relationships_following;
-        } else if (Array.isArray(jsonData)) {
-          processedData = jsonData;
-        } else if (jsonData.following) {
-          processedData = jsonData.following;
-        } else {
-          processedData = (Object.values(jsonData)[0] as any[]) || jsonData;
-        }
-      } else {
-        toast.error(
-          `Não foi possível identificar o tipo do arquivo ${fileName}. Use arquivos followers_*.json ou following.json`
-        );
-        return null;
-      }
-
-      // Verificar se já existe um arquivo do mesmo tipo
-      if (files.some(f => f.type === fileType)) {
-        toast.error(
-          `Já existe um arquivo de ${
-            fileType === 'followers' ? 'seguidores' : 'seguindo'
-          } carregado`
-        );
-        return null;
-      }
-
-      return {
-        name: fileName,
-        size: fileSize || content.length,
-        type: fileType,
-        data: processedData,
-        file: originalFile || {
-          name: fileName,
-          size: fileSize || content.length,
-        },
-      };
-    } catch (error) {
-      console.error('Erro ao processar arquivo:', error);
-      toast.error(`Erro ao processar ${fileName}: arquivo JSON inválido`);
-      return null;
-    }
-  };
-
-  // Função para processar arquivo JSON do upload direto
-  const processJsonFile = (
-    file: File,
-    content: string
-  ): UploadedFile | null => {
-    return processJsonContent(file.name, content, file.size, file);
-  };
-
-  // Função para processar arquivo ZIP
   const processZipFile = async (file: File) => {
     setIsExtracting(true);
+    setUploadProgress(0);
+
     try {
       const zip = new JSZip();
       const zipContent = await zip.loadAsync(file);
 
-      const extractedFiles: UploadedFile[] = [];
-      let foundFollowers = false;
-      let foundFollowing = false;
+      const newFiles = new Map(uploadedFiles);
+      const filesToProcess: { name: string; content: string }[] = [];
 
-      // Procurar por arquivos JSON no ZIP
+      // Procurar por todos os arquivos JSON no ZIP
       for (const [fileName, zipEntry] of Object.entries(zipContent.files)) {
-        if (zipEntry.dir) continue; // Pular diretórios
+        if (zipEntry.dir) continue;
 
-        const lowerFileName = fileName.toLowerCase();
+        if (fileName.toLowerCase().endsWith('.json')) {
+          const content = await zipEntry.async('string');
+          filesToProcess.push({ name: fileName, content });
+        }
+      }
 
-        // Procurar por followers*.json ou following.json em qualquer pasta
-        if (lowerFileName.endsWith('.json')) {
-          // Verificar se é um arquivo de followers ou following
-          const isFollowers =
-            lowerFileName.includes('followers_') ||
-            (lowerFileName.includes('followers') &&
-              !lowerFileName.includes('following'));
-          const isFollowing = lowerFileName.includes('following');
+      // Processar todos os arquivos encontrados
+      const processedData =
+        InstagramDataParser.parseMultipleFiles(filesToProcess);
 
-          if (isFollowers && !foundFollowers) {
-            const content = await zipEntry.async('string');
-            const extractedFileName =
-              fileName.split('/').pop() || 'followers.json';
-            const processedFile = processJsonContent(
-              extractedFileName,
-              content,
-              content.length
-            );
+      // Adicionar arquivos processados ao mapa
+      let filesFound = 0;
+      for (const [key, data] of Object.entries(processedData)) {
+        if (Array.isArray(data) && data.length > 0) {
+          newFiles.set(key as keyof InstagramDataComplete, data);
+          filesFound++;
 
-            if (processedFile && !files.some(f => f.type === 'followers')) {
-              extractedFiles.push(processedFile);
-              foundFollowers = true;
-              toast.success(
-                `✅ Arquivo de seguidores encontrado: ${extractedFileName}`
-              );
-            }
-          } else if (isFollowing && !foundFollowing) {
-            const content = await zipEntry.async('string');
-            const extractedFileName =
-              fileName.split('/').pop() || 'following.json';
-            const processedFile = processJsonContent(
-              extractedFileName,
-              content,
-              content.length
-            );
-
-            if (processedFile && !files.some(f => f.type === 'following')) {
-              extractedFiles.push(processedFile);
-              foundFollowing = true;
-              toast.success(
-                `✅ Arquivo de seguindo encontrado: ${extractedFileName}`
-              );
-            }
+          const fileInfo = FILE_TYPES.find(f => f.key === key);
+          if (fileInfo) {
+            toast.success(`✅ ${fileInfo.name}: ${data.length} registros`);
           }
         }
       }
 
-      if (extractedFiles.length === 0) {
-        toast.error(
-          'Nenhum arquivo válido encontrado no ZIP. Certifique-se de que o ZIP contém followers_*.json e following.json'
-        );
-      } else {
-        setFiles(prev => [...prev, ...extractedFiles]);
+      setUploadedFiles(newFiles);
+      setUploadProgress(100);
 
-        if (extractedFiles.length === 2) {
-          toast.success('🎉 Ambos os arquivos foram extraídos com sucesso!');
-        } else if (!foundFollowers) {
-          toast(
-            '⚠️ Arquivo de seguidores não encontrado. Adicione manualmente.',
-            { icon: '📋' }
-          );
-        } else if (!foundFollowing) {
-          toast(
-            '⚠️ Arquivo de seguindo não encontrado. Adicione manualmente.',
-            { icon: '📋' }
-          );
-        }
+      if (filesFound === 0) {
+        toast.error('Nenhum arquivo válido encontrado no ZIP');
+      } else {
+        toast.success(`🎉 ${filesFound} arquivos extraídos com sucesso!`);
       }
     } catch (error) {
-      console.error('Erro ao processar arquivo ZIP:', error);
-      toast.error(
-        'Erro ao extrair arquivo ZIP. Tente fazer upload dos arquivos JSON individualmente.'
-      );
+      console.error('Erro ao processar ZIP:', error);
+      toast.error('Erro ao extrair arquivo ZIP');
     } finally {
       setIsExtracting(false);
+      setUploadProgress(0);
     }
+  };
+
+  const processJsonFile = async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target?.result as string;
+      const { type, data } = InstagramDataParser.parseFile(file.name, content);
+
+      if (type && data.length > 0) {
+        const newFiles = new Map(uploadedFiles);
+        newFiles.set(type, data);
+        setUploadedFiles(newFiles);
+
+        const fileInfo = FILE_TYPES.find(f => f.key === type);
+        if (fileInfo) {
+          toast.success(`✅ ${fileInfo.name}: ${data.length} registros`);
+        }
+      } else {
+        toast.error(`Arquivo ${file.name} não reconhecido`);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       for (const file of acceptedFiles) {
-        // Verificar se é um arquivo ZIP
         if (file.name.toLowerCase().endsWith('.zip')) {
           await processZipFile(file);
-        }
-        // Processar arquivo JSON normal
-        else if (file.name.endsWith('.json')) {
-          const reader = new FileReader();
-          reader.onload = e => {
-            const content = e.target?.result as string;
-            const processedFile = processJsonFile(file, content);
-            if (processedFile) {
-              setFiles(prev => [...prev, processedFile]);
-              toast.success(`Arquivo ${file.name} carregado com sucesso!`);
-            }
-          };
-          reader.readAsText(file);
+        } else if (file.name.endsWith('.json')) {
+          await processJsonFile(file);
         } else {
-          toast.error(
-            `${file.name} não é um arquivo válido. Use arquivos .json ou .zip`
-          );
+          toast.error(`${file.name} não é um arquivo válido`);
         }
       }
     },
-    [files]
+    [uploadedFiles]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -258,40 +268,57 @@ export default function UploadPage() {
     multiple: true,
   });
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-    toast.success('Arquivo removido');
-  };
-
   const handleAnalyze = async () => {
-    if (files.length !== 2) {
-      toast.error(
-        'É necessário carregar ambos os arquivos (followers e following)'
-      );
+    if (!canAnalyze) {
+      toast.error('Upload os arquivos obrigatórios primeiro');
       return;
     }
 
     setIsProcessing(true);
 
-    // Simular processamento
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Construir objeto InstagramDataComplete
+      const completeData: InstagramDataComplete = {
+        followers: uploadedFiles.get('followers') || [],
+        following: uploadedFiles.get('following') || [],
+        closeFriends: uploadedFiles.get('closeFriends') || [],
+        blockedProfiles: uploadedFiles.get('blockedProfiles') || [],
+        recentlyUnfollowed: uploadedFiles.get('recentlyUnfollowed') || [],
+        followRequestsReceived:
+          uploadedFiles.get('followRequestsReceived') || [],
+        pendingFollowRequests: uploadedFiles.get('pendingFollowRequests') || [],
+        recentFollowRequests: uploadedFiles.get('recentFollowRequests') || [],
+        hideStoryFrom: uploadedFiles.get('hideStoryFrom') || [],
+        followingHashtags: uploadedFiles.get('followingHashtags') || [],
+        restrictedProfiles: uploadedFiles.get('restrictedProfiles') || [],
+        removedSuggestions: uploadedFiles.get('removedSuggestions') || [],
+      };
 
-    // Salvar dados no localStorage para a página de análise
-    const followersFile = files.find(f => f.type === 'followers');
-    const followingFile = files.find(f => f.type === 'following');
+      // Gerar análise completa
+      const analysis = InstagramAnalyzer.analyze(completeData);
 
-    if (followersFile && followingFile) {
-      localStorage.setItem(
-        'instagram-data',
-        JSON.stringify({
-          followers: followersFile.data,
-          following: followingFile.data,
-          uploadedAt: new Date().toISOString(),
-        })
-      );
+      // Salvar no histórico
+      const analysisId = HistoryManager.saveAnalysis(analysis);
 
+      // Salvar análise atual no localStorage para a página de análise
+      localStorage.setItem('current-analysis', JSON.stringify(analysis));
+      localStorage.setItem('current-analysis-id', analysisId);
+
+      toast.success('Análise completa gerada!');
       router.push('/analyze');
+    } catch (error) {
+      console.error('Erro ao analisar:', error);
+      toast.error('Erro ao processar análise');
+    } finally {
+      setIsProcessing(false);
     }
+  };
+
+  const removeFile = (key: keyof InstagramDataComplete) => {
+    const newFiles = new Map(uploadedFiles);
+    newFiles.delete(key);
+    setUploadedFiles(newFiles);
+    toast.success('Arquivo removido');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -305,7 +332,7 @@ export default function UploadPage() {
   return (
     <div className='min-h-screen gradient-bg flex flex-col'>
       <Header
-        subtitle='Upload dos arquivos'
+        subtitle='Upload Revolucionário - 12 Tipos de Dados'
         rightContent={
           <Button
             variant='ghost'
@@ -313,20 +340,20 @@ export default function UploadPage() {
             className='btn-header'
           >
             <ArrowLeft className='w-4 h-4 mr-2' />
-            Voltar ao Tutorial
+            Tutorial
           </Button>
         }
       />
 
       <main className='container mx-auto px-4 py-8 flex-1'>
         {/* Hero Section */}
-        <div className='text-center mb-12'>
+        <div className='text-center mb-8'>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className='text-white text-3xl lg:text-4xl font-bold mb-4 drop-shadow-lg'
           >
-            Faça upload dos seus arquivos
+            🚀 Dashboard Revolucionário do Instagram
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -334,19 +361,42 @@ export default function UploadPage() {
             transition={{ delay: 0.1 }}
             className='text-white text-lg opacity-90 max-w-2xl mx-auto drop-shadow'
           >
-            <strong>🎉 Novo!</strong> Agora você pode arrastar o arquivo{' '}
-            <strong>ZIP do Instagram</strong> diretamente ou fazer upload dos
-            arquivos JSON individualmente
+            Análise completa de <strong>12 tipos de dados</strong> do Instagram.
+            Detector de bloqueios, score social, insights avançados e muito
+            mais!
           </motion.p>
         </div>
 
-        <div className='max-w-4xl mx-auto'>
+        {/* Progress Bar */}
+        <div className='max-w-4xl mx-auto mb-8'>
+          <Card className='card-instagram'>
+            <CardContent className='pt-6'>
+              <div className='flex justify-between items-center mb-2'>
+                <span className='text-sm font-medium'>
+                  {uploadedFiles.size} de {FILE_TYPES.length} arquivos
+                </span>
+                <span className='text-sm font-medium'>
+                  {Math.round(progress)}%
+                </span>
+              </div>
+              <Progress value={progress} className='h-2' />
+              {!canAnalyze && uploadedFiles.size > 0 && (
+                <p className='text-xs text-amber-600 mt-2'>
+                  ⚠️ Upload os arquivos obrigatórios (Seguidores e Seguindo)
+                  para continuar
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className='max-w-6xl mx-auto'>
           {/* Upload Area */}
           <Card className='mb-8 card-instagram'>
             <CardHeader>
               <CardTitle className='text-center'>
                 <Upload className='w-8 h-8 mx-auto mb-2' />
-                Área de Upload
+                Arraste o ZIP do Instagram ou JSONs Individuais
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -356,7 +406,7 @@ export default function UploadPage() {
                   border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer
                   ${
                     isDragActive
-                      ? 'border-blue-500 bg-blue-50'
+                      ? 'border-purple-500 bg-purple-50'
                       : isExtracting
                       ? 'border-purple-500 bg-purple-50 animate-pulse'
                       : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
@@ -364,249 +414,180 @@ export default function UploadPage() {
                 `}
               >
                 <input {...getInputProps()} />
-                <motion.div
-                  animate={isDragActive ? { scale: 1.05 } : { scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {isExtracting ? (
-                    <>
-                      <Loader2 className='w-16 h-16 mx-auto mb-4 text-purple-500 animate-spin' />
-                      <p className='text-lg text-purple-600 font-medium'>
-                        Extraindo arquivos do ZIP...
-                      </p>
-                      <p className='text-sm text-purple-500 mt-2'>
-                        Aguarde um momento
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className='flex justify-center gap-4 mb-4'>
-                        <FileArchive className='w-16 h-16 text-purple-400' />
-                        <FileText className='w-16 h-16 text-gray-400' />
-                      </div>
-                      {isDragActive ? (
-                        <p className='text-lg text-blue-600 font-medium'>
-                          Solte os arquivos aqui...
-                        </p>
-                      ) : (
-                        <>
-                          <p className='text-lg font-medium mb-2'>
-                            Arraste o{' '}
-                            <span className='text-purple-600 font-bold'>
-                              arquivo ZIP do Instagram
-                            </span>{' '}
-                            aqui
-                          </p>
-                          <p className='text-sm text-gray-600 mb-2'>
-                            ou arquivos JSON individuais
-                          </p>
-                          <p className='text-xs text-gray-500'>
-                            Suportamos: .zip (recomendado) ou .json (manual)
-                          </p>
-                        </>
-                      )}
-                    </>
-                  )}
-                </motion.div>
-              </div>
-
-              {/* Info Cards */}
-              <div className='mt-6 grid md:grid-cols-2 gap-4'>
-                <div className='p-4 bg-purple-50 border border-purple-200 rounded-lg'>
-                  <div className='flex items-start space-x-3'>
-                    <FileArchive className='w-6 h-6 text-purple-600 mt-0.5' />
-                    <div>
-                      <p className='font-semibold text-purple-900'>
-                        Método Recomendado
-                      </p>
-                      <p className='text-sm text-purple-700 mt-1'>
-                        Arraste o arquivo ZIP baixado do Instagram diretamente.
-                        Extraímos automaticamente os arquivos necessários!
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
-                  <div className='flex items-start space-x-3'>
-                    <FileText className='w-6 h-6 text-gray-600 mt-0.5' />
-                    <div>
-                      <p className='font-semibold text-gray-900'>
-                        Método Alternativo
-                      </p>
-                      <p className='text-sm text-gray-700 mt-1'>
-                        Extraia o ZIP manualmente e faça upload de
-                        followers_*.json e following.json
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Required Files Info */}
-              <div className='mt-6 grid md:grid-cols-2 gap-4'>
-                <div className='flex items-center space-x-3 p-3 bg-gray-50 rounded-lg'>
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      files.some(f => f.type === 'followers')
-                        ? 'bg-green-500'
-                        : 'bg-gray-300'
-                    }`}
-                  >
-                    {files.some(f => f.type === 'followers') ? (
-                      <CheckCircle className='w-4 h-4 text-white' />
-                    ) : (
-                      <File className='w-4 h-4 text-gray-600' />
-                    )}
-                  </div>
-                  <div>
-                    <p className='font-medium'>Seguidores</p>
-                    <p className='text-sm text-gray-600'>
-                      {files.some(f => f.type === 'followers')
-                        ? `✅ ${
-                            files.find(f => f.type === 'followers')?.data.length
-                          } registros`
-                        : 'Aguardando arquivo'}
+                {isExtracting ? (
+                  <>
+                    <Loader2 className='w-16 h-16 mx-auto mb-4 text-purple-500 animate-spin' />
+                    <p className='text-lg text-purple-600 font-medium'>
+                      Extraindo arquivos do ZIP...
                     </p>
-                  </div>
-                </div>
-
-                <div className='flex items-center space-x-3 p-3 bg-gray-50 rounded-lg'>
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      files.some(f => f.type === 'following')
-                        ? 'bg-green-500'
-                        : 'bg-gray-300'
-                    }`}
-                  >
-                    {files.some(f => f.type === 'following') ? (
-                      <CheckCircle className='w-4 h-4 text-white' />
-                    ) : (
-                      <File className='w-4 h-4 text-gray-600' />
+                    {uploadProgress > 0 && (
+                      <Progress
+                        value={uploadProgress}
+                        className='w-64 mx-auto mt-4'
+                      />
                     )}
-                  </div>
-                  <div>
-                    <p className='font-medium'>Seguindo</p>
-                    <p className='text-sm text-gray-600'>
-                      {files.some(f => f.type === 'following')
-                        ? `✅ ${
-                            files.find(f => f.type === 'following')?.data.length
-                          } registros`
-                        : 'Aguardando arquivo'}
+                  </>
+                ) : (
+                  <>
+                    <FileArchive className='w-16 h-16 mx-auto mb-4 text-purple-400' />
+                    <p className='text-lg font-medium mb-2'>
+                      Arraste o arquivo ZIP do Instagram aqui
                     </p>
-                  </div>
-                </div>
+                    <p className='text-sm text-gray-600'>
+                      ou clique para selecionar arquivos
+                    </p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Uploaded Files */}
-          {files.length > 0 && (
-            <Card className='mb-8 card-instagram'>
-              <CardHeader>
-                <CardTitle className='flex items-center justify-between'>
-                  Arquivos Carregados
-                  <Badge variant='secondary'>{files.length}/2</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='space-y-4'>
-                  {files.map((file, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'
-                    >
-                      <div className='flex items-center space-x-3'>
-                        <div
-                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                            file.type === 'followers'
-                              ? 'bg-blue-100'
-                              : 'bg-green-100'
-                          }`}
-                        >
-                          <File
-                            className={`w-5 h-5 ${
-                              file.type === 'followers'
-                                ? 'text-blue-600'
-                                : 'text-green-600'
-                            }`}
-                          />
-                        </div>
+          {/* Files Status Grid */}
+          <div className='grid md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8'>
+            {FILE_TYPES.map(fileType => {
+              const hasFile = uploadedFiles.has(fileType.key);
+              const fileData = uploadedFiles.get(fileType.key);
+              const Icon = fileType.icon;
+
+              return (
+                <motion.div
+                  key={fileType.key}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  className={`relative ${
+                    !hasFile && !fileType.required ? 'opacity-60' : ''
+                  }`}
+                >
+                  <Card
+                    className={`
+                    ${
+                      hasFile
+                        ? 'border-green-200 bg-green-50'
+                        : fileType.required
+                        ? 'border-amber-200 bg-amber-50'
+                        : 'border-gray-200'
+                    }
+                  `}
+                  >
+                    <CardContent className='pt-6'>
+                      <div className='flex items-center justify-between mb-3'>
+                        <Icon className={`w-6 h-6 ${fileType.color}`} />
+                        {hasFile && (
+                          <Button
+                            variant='ghost'
+                            size='sm'
+                            onClick={() => removeFile(fileType.key)}
+                            className='h-6 w-6 p-0 hover:bg-red-100'
+                          >
+                            <X className='w-4 h-4 text-red-500' />
+                          </Button>
+                        )}
+                      </div>
+                      <h3 className='font-medium text-sm mb-1'>
+                        {fileType.name}
+                      </h3>
+                      {hasFile ? (
                         <div>
-                          <p className='font-medium'>{file.name}</p>
-                          <p className='text-sm text-gray-600'>
-                            {formatFileSize(file.size)} • {file.data.length}{' '}
+                          <p className='text-xs text-green-600 font-semibold'>
+                            ✅ {Array.isArray(fileData) ? fileData.length : 0}{' '}
                             registros
                           </p>
                         </div>
-                      </div>
-                      <div className='flex items-center space-x-2'>
-                        <Badge
-                          variant={
-                            file.type === 'followers' ? 'default' : 'secondary'
-                          }
-                        >
-                          {file.type === 'followers'
-                            ? 'Seguidores'
-                            : 'Seguindo'}
-                        </Badge>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => removeFile(index)}
-                          className='text-red-500 hover:text-red-700 hover:bg-red-50'
-                        >
-                          <X className='w-4 h-4' />
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                      ) : (
+                        <div>
+                          <p className='text-xs text-gray-500'>
+                            {fileType.fileName}
+                          </p>
+                          {fileType.required && (
+                            <Badge
+                              variant='destructive'
+                              className='text-xs mt-1'
+                            >
+                              Obrigatório
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
 
-          {/* Progress Indicator */}
-          {files.length > 0 && files.length < 2 && (
-            <Card className='mb-8 border-amber-200 bg-amber-50'>
-              <CardContent className='pt-6'>
-                <div className='flex items-center space-x-3'>
-                  <AlertCircle className='w-5 h-5 text-amber-600' />
-                  <div>
-                    <p className='font-medium text-amber-800'>
-                      Falta {2 - files.length} arquivo
-                      {2 - files.length > 1 ? 's' : ''}
-                    </p>
-                    <p className='text-sm text-amber-700'>
-                      {files.some(f => f.type === 'followers')
-                        ? 'Arquivo de "seguindo" não encontrado'
-                        : 'Arquivo de "seguidores" não encontrado'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Success Message when both files are loaded */}
-          {files.length === 2 && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className='mb-8'
+          {/* Analysis Button */}
+          <div className='flex justify-center'>
+            <Button
+              onClick={handleAnalyze}
+              disabled={!canAnalyze || isProcessing}
+              size='lg'
+              className={`
+                ${
+                  canAnalyze
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+                    : 'bg-gray-400'
+                }
+                text-white px-8 py-6 text-lg shadow-xl
+              `}
             >
-              <Card className='border-green-200 bg-green-50'>
-                <CardContent className='pt-6'>
-                  <div className='flex items-center space-x-3'>
-                    <CheckCircle className='w-6 h-6 text-green-600' />
-                    <div>
-                      <p className='font-medium text-green-800'>
-                        Tudo pronto para análise!
+              {isProcessing ? (
+                <>
+                  <Loader2 className='w-5 h-5 mr-2 animate-spin' />
+                  Analisando...
+                </>
+              ) : (
+                <>
+                  🚀 Gerar Análise Revolucionária
+                  <ArrowRight className='w-5 h-5 ml-2' />
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Features Preview */}
+          {uploadedFiles.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='mt-8'
+            >
+              <Card className='border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50'>
+                <CardHeader>
+                  <CardTitle className='text-purple-800'>
+                    🎯 O que você vai descobrir:
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='grid md:grid-cols-2 gap-4'>
+                    <div className='space-y-2'>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>Detector de Bloqueios:</strong> 60-90% de
+                        precisão
                       </p>
-                      <p className='text-sm text-green-700'>
-                        Ambos os arquivos foram carregados com sucesso
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>Score Social:</strong> Gamificação viciante
+                      </p>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>Círculos Sociais:</strong> VIPs, Crushes, Ghosts
+                      </p>
+                    </div>
+                    <div className='space-y-2'>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>Timeline:</strong> Histórico de mudanças
+                      </p>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>Insights IA:</strong> Recomendações
+                        personalizadas
+                      </p>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-green-500' />
+                        <strong>12 Tipos de Dados:</strong> Análise completa
                       </p>
                     </div>
                   </div>
@@ -615,49 +596,19 @@ export default function UploadPage() {
             </motion.div>
           )}
 
-          {/* Action Buttons */}
-          <div className='flex justify-center'>
-            <Button
-              onClick={handleAnalyze}
-              disabled={files.length !== 2 || isProcessing}
-              className='bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-8 py-3 text-lg shadow-xl'
-            >
-              {isProcessing ? (
-                <>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: 'linear',
-                    }}
-                    className='w-5 h-5 mr-2 border-2 border-white border-t-transparent rounded-full'
-                  />
-                  Analisando...
-                </>
-              ) : (
-                <>
-                  Analisar Seguidores
-                  <ArrowRight className='w-5 h-5 ml-2' />
-                </>
-              )}
-            </Button>
-          </div>
-
           {/* Privacy Notice */}
           <Card className='mt-8 border-green-200 bg-green-50'>
             <CardContent className='pt-6'>
               <div className='flex items-start space-x-3'>
-                <CheckCircle className='w-5 h-5 text-green-600 mt-0.5' />
+                <Shield className='w-5 h-5 text-green-600 mt-0.5' />
                 <div>
                   <p className='font-medium text-green-800 mb-1'>
                     🔒 100% Privado e Seguro
                   </p>
                   <p className='text-sm text-green-700'>
-                    Seus dados são processados apenas no seu navegador. Nenhuma
-                    informação é enviada para nossos servidores. Os arquivos
-                    ficam armazenados localmente e podem ser removidos a
-                    qualquer momento.
+                    Processamento 100% local. Nenhum dado é enviado para
+                    servidores. Seus dados ficam apenas no seu navegador e você
+                    tem controle total.
                   </p>
                 </div>
               </div>
@@ -666,7 +617,6 @@ export default function UploadPage() {
         </div>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
