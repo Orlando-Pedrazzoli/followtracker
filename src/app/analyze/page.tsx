@@ -20,6 +20,9 @@ import {
   UserCheck,
   Heart,
   Ghost,
+  ChevronDown,
+  ChevronUp,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/ui/header';
@@ -35,7 +38,25 @@ export default function AnalyzePage() {
   const [analysis, setAnalysis] = useState<CompleteAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('not-following-back');
+  const [showAllNotFollowing, setShowAllNotFollowing] = useState(false);
+  const [showAllMutual, setShowAllMutual] = useState(false);
+  const [showAllNotFollowed, setShowAllNotFollowed] = useState(false);
   const router = useRouter();
+
+  // Quantidade inicial de itens a mostrar
+  const INITIAL_ITEMS_TO_SHOW = 50;
+  const ITEMS_INCREMENT = 50; // Quantos itens adicionar a cada "Mostrar mais"
+
+  // Estados para controlar quantos itens mostrar
+  const [notFollowingItemsToShow, setNotFollowingItemsToShow] = useState(
+    INITIAL_ITEMS_TO_SHOW
+  );
+  const [mutualItemsToShow, setMutualItemsToShow] = useState(
+    INITIAL_ITEMS_TO_SHOW
+  );
+  const [notFollowedItemsToShow, setNotFollowedItemsToShow] = useState(
+    INITIAL_ITEMS_TO_SHOW
+  );
 
   useEffect(() => {
     loadAnalysis();
@@ -134,6 +155,63 @@ Faça sua análise em: www.followerscan.com`;
       HistoryManager.clearHistory();
       toast.success('Dados limpos com sucesso!');
       router.push('/upload');
+    }
+  };
+
+  // Função para mostrar mais itens
+  const handleShowMore = (type: 'notFollowing' | 'mutual' | 'notFollowed') => {
+    switch (type) {
+      case 'notFollowing':
+        setNotFollowingItemsToShow(prev => prev + ITEMS_INCREMENT);
+        break;
+      case 'mutual':
+        setMutualItemsToShow(prev => prev + ITEMS_INCREMENT);
+        break;
+      case 'notFollowed':
+        setNotFollowedItemsToShow(prev => prev + ITEMS_INCREMENT);
+        break;
+    }
+  };
+
+  // Função para mostrar todos os itens
+  const handleShowAll = (type: 'notFollowing' | 'mutual' | 'notFollowed') => {
+    if (!analysis) return;
+
+    switch (type) {
+      case 'notFollowing':
+        setNotFollowingItemsToShow(
+          analysis.relationships.notFollowingBack.length
+        );
+        setShowAllNotFollowing(true);
+        break;
+      case 'mutual':
+        setMutualItemsToShow(analysis.relationships.mutual.length);
+        setShowAllMutual(true);
+        break;
+      case 'notFollowed':
+        setNotFollowedItemsToShow(
+          analysis.relationships.notFollowedBack.length
+        );
+        setShowAllNotFollowed(true);
+        break;
+    }
+  };
+
+  // Função para mostrar menos itens
+  const handleShowLess = (type: 'notFollowing' | 'mutual' | 'notFollowed') => {
+    switch (type) {
+      case 'notFollowing':
+        setNotFollowingItemsToShow(INITIAL_ITEMS_TO_SHOW);
+        setShowAllNotFollowing(false);
+        break;
+      case 'mutual':
+        setMutualItemsToShow(INITIAL_ITEMS_TO_SHOW);
+        setShowAllMutual(false);
+        break;
+      case 'notFollowed':
+        setNotFollowedItemsToShow(INITIAL_ITEMS_TO_SHOW);
+        setShowAllNotFollowed(false);
+        break;
     }
   };
 
@@ -368,27 +446,39 @@ Faça sua análise em: www.followerscan.com`;
                 <CardTitle className='text-red-600'>
                   Pessoas que você segue mas não te seguem de volta
                 </CardTitle>
-                <p className='text-gray-600'>
-                  Total: {analysis.stats.notFollowingBackCount} pessoas
-                </p>
-                <Button
-                  onClick={() =>
-                    exportToCSV(
-                      analysis.relationships.notFollowingBack,
-                      'nao_te_seguem_de_volta.csv'
-                    )
-                  }
-                  className='w-fit mt-4'
-                  variant='outline'
-                >
-                  <Download className='w-4 h-4 mr-2' />
-                  Exportar Lista
-                </Button>
+                <div className='flex items-center justify-between mt-2'>
+                  <p className='text-gray-600'>
+                    Total: {analysis.stats.notFollowingBackCount} pessoas
+                  </p>
+                  <div className='flex gap-2'>
+                    <Badge variant='secondary'>
+                      Mostrando{' '}
+                      {Math.min(
+                        notFollowingItemsToShow,
+                        analysis.relationships.notFollowingBack.length
+                      )}{' '}
+                      de {analysis.relationships.notFollowingBack.length}
+                    </Badge>
+                    <Button
+                      onClick={() =>
+                        exportToCSV(
+                          analysis.relationships.notFollowingBack,
+                          'nao_te_seguem_de_volta.csv'
+                        )
+                      }
+                      size='sm'
+                      variant='outline'
+                    >
+                      <Download className='w-4 h-4 mr-2' />
+                      Exportar Tudo
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
                   {analysis.relationships.notFollowingBack
-                    .slice(0, 50)
+                    .slice(0, notFollowingItemsToShow)
                     .map((user, index) => (
                       <div
                         key={index}
@@ -424,11 +514,41 @@ Faça sua análise em: www.followerscan.com`;
                       </div>
                     ))}
                 </div>
-                {analysis.relationships.notFollowingBack.length > 50 && (
-                  <p className='text-center text-gray-600 mt-4'>
-                    Mostrando 50 de{' '}
-                    {analysis.relationships.notFollowingBack.length} resultados
-                  </p>
+
+                {/* Botões de controle de visualização */}
+                {analysis.relationships.notFollowingBack.length >
+                  INITIAL_ITEMS_TO_SHOW && (
+                  <div className='flex justify-center gap-4 mt-6'>
+                    {notFollowingItemsToShow <
+                      analysis.relationships.notFollowingBack.length && (
+                      <>
+                        <Button
+                          onClick={() => handleShowMore('notFollowing')}
+                          variant='outline'
+                        >
+                          <ChevronDown className='w-4 h-4 mr-2' />
+                          Mostrar mais {ITEMS_INCREMENT}
+                        </Button>
+                        <Button
+                          onClick={() => handleShowAll('notFollowing')}
+                          className='bg-red-500 hover:bg-red-600'
+                        >
+                          <Eye className='w-4 h-4 mr-2' />
+                          Mostrar todos (
+                          {analysis.relationships.notFollowingBack.length})
+                        </Button>
+                      </>
+                    )}
+                    {notFollowingItemsToShow > INITIAL_ITEMS_TO_SHOW && (
+                      <Button
+                        onClick={() => handleShowLess('notFollowing')}
+                        variant='outline'
+                      >
+                        <ChevronUp className='w-4 h-4 mr-2' />
+                        Mostrar menos
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </TabsContent>
@@ -492,27 +612,39 @@ Faça sua análise em: www.followerscan.com`;
                 <CardTitle className='text-green-600'>
                   Seguidores Mútuos
                 </CardTitle>
-                <p className='text-gray-600'>
-                  Pessoas que vocês se seguem mutuamente
-                </p>
-                <Button
-                  onClick={() =>
-                    exportToCSV(
-                      analysis.relationships.mutual,
-                      'seguidores_mutuos.csv'
-                    )
-                  }
-                  className='w-fit mt-4'
-                  variant='outline'
-                >
-                  <Download className='w-4 h-4 mr-2' />
-                  Exportar Lista
-                </Button>
+                <div className='flex items-center justify-between mt-2'>
+                  <p className='text-gray-600'>
+                    Pessoas que vocês se seguem mutuamente
+                  </p>
+                  <div className='flex gap-2'>
+                    <Badge variant='secondary'>
+                      Mostrando{' '}
+                      {Math.min(
+                        mutualItemsToShow,
+                        analysis.relationships.mutual.length
+                      )}{' '}
+                      de {analysis.relationships.mutual.length}
+                    </Badge>
+                    <Button
+                      onClick={() =>
+                        exportToCSV(
+                          analysis.relationships.mutual,
+                          'seguidores_mutuos.csv'
+                        )
+                      }
+                      size='sm'
+                      variant='outline'
+                    >
+                      <Download className='w-4 h-4 mr-2' />
+                      Exportar Tudo
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
                   {analysis.relationships.mutual
-                    .slice(0, 50)
+                    .slice(0, mutualItemsToShow)
                     .map((user, index) => (
                       <div
                         key={index}
@@ -537,6 +669,41 @@ Faça sua análise em: www.followerscan.com`;
                       </div>
                     ))}
                 </div>
+
+                {/* Botões de controle de visualização */}
+                {analysis.relationships.mutual.length >
+                  INITIAL_ITEMS_TO_SHOW && (
+                  <div className='flex justify-center gap-4 mt-6'>
+                    {mutualItemsToShow <
+                      analysis.relationships.mutual.length && (
+                      <>
+                        <Button
+                          onClick={() => handleShowMore('mutual')}
+                          variant='outline'
+                        >
+                          <ChevronDown className='w-4 h-4 mr-2' />
+                          Mostrar mais {ITEMS_INCREMENT}
+                        </Button>
+                        <Button
+                          onClick={() => handleShowAll('mutual')}
+                          className='bg-green-500 hover:bg-green-600'
+                        >
+                          <Eye className='w-4 h-4 mr-2' />
+                          Mostrar todos ({analysis.relationships.mutual.length})
+                        </Button>
+                      </>
+                    )}
+                    {mutualItemsToShow > INITIAL_ITEMS_TO_SHOW && (
+                      <Button
+                        onClick={() => handleShowLess('mutual')}
+                        variant='outline'
+                      >
+                        <ChevronUp className='w-4 h-4 mr-2' />
+                        Mostrar menos
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </TabsContent>
 
@@ -544,14 +711,24 @@ Faça sua análise em: www.followerscan.com`;
             <TabsContent value='not-followed'>
               <CardHeader>
                 <CardTitle>Pessoas que te seguem mas você não segue</CardTitle>
-                <p className='text-gray-600'>
-                  Potenciais seguidores para seguir de volta
-                </p>
+                <div className='flex items-center justify-between mt-2'>
+                  <p className='text-gray-600'>
+                    Potenciais seguidores para seguir de volta
+                  </p>
+                  <Badge variant='secondary'>
+                    Mostrando{' '}
+                    {Math.min(
+                      notFollowedItemsToShow,
+                      analysis.relationships.notFollowedBack.length
+                    )}{' '}
+                    de {analysis.relationships.notFollowedBack.length}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
                   {analysis.relationships.notFollowedBack
-                    .slice(0, 50)
+                    .slice(0, notFollowedItemsToShow)
                     .map((user, index) => (
                       <div
                         key={index}
@@ -576,6 +753,42 @@ Faça sua análise em: www.followerscan.com`;
                       </div>
                     ))}
                 </div>
+
+                {/* Botões de controle de visualização */}
+                {analysis.relationships.notFollowedBack.length >
+                  INITIAL_ITEMS_TO_SHOW && (
+                  <div className='flex justify-center gap-4 mt-6'>
+                    {notFollowedItemsToShow <
+                      analysis.relationships.notFollowedBack.length && (
+                      <>
+                        <Button
+                          onClick={() => handleShowMore('notFollowed')}
+                          variant='outline'
+                        >
+                          <ChevronDown className='w-4 h-4 mr-2' />
+                          Mostrar mais {ITEMS_INCREMENT}
+                        </Button>
+                        <Button
+                          onClick={() => handleShowAll('notFollowed')}
+                          className='bg-blue-500 hover:bg-blue-600'
+                        >
+                          <Eye className='w-4 h-4 mr-2' />
+                          Mostrar todos (
+                          {analysis.relationships.notFollowedBack.length})
+                        </Button>
+                      </>
+                    )}
+                    {notFollowedItemsToShow > INITIAL_ITEMS_TO_SHOW && (
+                      <Button
+                        onClick={() => handleShowLess('notFollowed')}
+                        variant='outline'
+                      >
+                        <ChevronUp className='w-4 h-4 mr-2' />
+                        Mostrar menos
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </TabsContent>
 

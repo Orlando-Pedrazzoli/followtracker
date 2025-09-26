@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     'privacidade',
     'scan',
   ],
+  icons: {
+    icon: '/instagram-explore.svg',
+    shortcut: '/instagram-explore.svg',
+    apple: '/instagram-explore.svg',
+  },
 };
 
 export default function RootLayout({
@@ -25,6 +30,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang='pt-BR'>
+      <head>
+        <link rel='icon' href='/instagram-explore.svg' type='image/svg+xml' />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );

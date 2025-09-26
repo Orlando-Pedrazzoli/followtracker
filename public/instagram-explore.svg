@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Designed by Vexels.com - 2017 All Rights Reserved - https://vexels.com/terms-and-conditions/-->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 1200 1200" enable-background="new 0 0 1200 1200" xml:space="preserve">
+<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="60.7787" y1="600" x2="1139.2213" y2="600">
+	<stop  offset="0" style="stop-color:#FDF440"/>
+	<stop  offset="0.2586" style="stop-color:#F94A2F"/>
+	<stop  offset="0.3244" style="stop-color:#F74734"/>
+	<stop  offset="0.3992" style="stop-color:#F13D41"/>
+	<stop  offset="0.4781" style="stop-color:#E72E58"/>
+	<stop  offset="0.5538" style="stop-color:#DA1A75"/>
+	<stop  offset="1" style="stop-color:#2B4AE2"/>
+</linearGradient>
+<path fill="url(#SVGID_1_)" d="M1124.634,1064.982L943.886,884.237c77.234-88.538,124.177-204.153,124.177-330.595
+	C1068.063,275.933,842.13,50,564.422,50C286.711,50,60.779,275.933,60.779,553.642s225.933,503.643,503.643,503.643
+	c115.454,0,221.882-39.145,306.926-104.731l182.859,182.861c9.725,9.721,22.469,14.584,35.214,14.584
+	c12.746,0,25.491-4.863,35.216-14.584C1144.083,1115.962,1144.083,1084.435,1124.634,1064.982z M160.382,553.642
+	c0-222.789,181.25-404.04,404.039-404.04s404.039,181.25,404.039,404.04c0,222.79-181.25,404.04-404.039,404.04
+	S160.382,776.432,160.382,553.642z"/>
+</svg>
