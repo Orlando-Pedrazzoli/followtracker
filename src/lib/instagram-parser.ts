@@ -32,21 +32,25 @@ export class InstagramDataParser {
 
   /**
    * Detecta o tipo de arquivo baseado no conteúdo e nome
+   * MELHORADO: Suporta arquivos em subpastas do ZIP
    */
   private static detectFileType(
     fileName: string,
     content: any
   ): keyof InstagramDataComplete | null {
-    const lowerFileName = fileName.toLowerCase();
+    // Pegar apenas o nome do arquivo sem o caminho
+    const baseFileName = fileName.split('/').pop() || '';
+    const lowerFileName = baseFileName.toLowerCase();
 
-    // Mapear nome do arquivo para tipo
+    // Mapear nome do arquivo para tipo - ordem importa!
     const fileTypeMap: Record<string, keyof InstagramDataComplete> = {
+      followers_1: 'followers', // Arquivo específico followers_1.json
       followers: 'followers',
       following: 'following',
       close_friends: 'closeFriends',
       blocked_profiles: 'blockedProfiles',
       recently_unfollowed: 'recentlyUnfollowed',
-      follow_requests_received: 'followRequestsReceived',
+      follow_requests_you: 'followRequestsReceived', // follow_requests_you've_received
       pending_follow_requests: 'pendingFollowRequests',
       recent_follow_requests: 'recentFollowRequests',
       hide_story_from: 'hideStoryFrom',
@@ -58,6 +62,7 @@ export class InstagramDataParser {
     // Verificar por nome de arquivo
     for (const [key, value] of Object.entries(fileTypeMap)) {
       if (lowerFileName.includes(key)) {
+        console.log(`Arquivo detectado: ${baseFileName} -> ${value}`);
         return value;
       }
     }
@@ -66,13 +71,37 @@ export class InstagramDataParser {
     const contentKeys = Object.keys(content);
     for (const key of contentKeys) {
       const lowerKey = key.toLowerCase();
-      for (const [fileKey, value] of Object.entries(fileTypeMap)) {
-        if (lowerKey.includes(fileKey.replace('_', ''))) {
-          return value;
-        }
+      // Procurar por chaves específicas do Instagram
+      if (
+        lowerKey.includes('relationships_followers') ||
+        key === 'followers_1'
+      ) {
+        return 'followers';
+      }
+      if (lowerKey.includes('relationships_following') || key === 'following') {
+        return 'following';
+      }
+      if (lowerKey.includes('relationships_unfollowed_users')) {
+        return 'recentlyUnfollowed';
+      }
+      if (lowerKey.includes('relationships_follow_requests_received')) {
+        return 'followRequestsReceived';
+      }
+      if (lowerKey.includes('relationships_close_friends')) {
+        return 'closeFriends';
+      }
+      if (lowerKey.includes('relationships_blocked_users')) {
+        return 'blockedProfiles';
+      }
+      if (lowerKey.includes('relationships_restricted_users')) {
+        return 'restrictedProfiles';
+      }
+      if (lowerKey.includes('relationships_hide_stories_from')) {
+        return 'hideStoryFrom';
       }
     }
 
+    console.warn(`Tipo de arquivo não reconhecido: ${baseFileName}`);
     return null;
   }
 
@@ -112,6 +141,7 @@ export class InstagramDataParser {
 
   /**
    * Extrai usuários de qualquer formato do Instagram
+   * MELHORADO: Suporta mais formatos
    */
   private static extractUsers(jsonData: any): InstagramUser[] {
     let users: InstagramUser[] = [];
@@ -126,7 +156,7 @@ export class InstagramDataParser {
       return users;
     }
 
-    // Procurar por chaves conhecidas
+    // Procurar por chaves conhecidas - EXPANDIDO
     const possibleKeys = [
       'relationships_followers',
       'relationships_following',
@@ -139,6 +169,7 @@ export class InstagramDataParser {
       'relationships_hide_stories_from',
       'relationships_restricted_users',
       'followers',
+      'followers_1', // Novo formato
       'following',
       'close_friends',
       'blocked_profiles',
@@ -196,6 +227,7 @@ export class InstagramDataParser {
 
   /**
    * Processa múltiplos arquivos e retorna dados completos
+   * MELHORADO: Melhor processamento de arquivos do ZIP
    */
   static parseMultipleFiles(
     files: { name: string; content: string }[]
@@ -215,6 +247,8 @@ export class InstagramDataParser {
       removedSuggestions: [],
     };
 
+    console.log(`Processando ${files.length} arquivos...`);
+
     for (const file of files) {
       const { type, data } = this.parseFile(file.name, file.content);
 
@@ -224,6 +258,7 @@ export class InstagramDataParser {
         } else {
           result[type] = data as InstagramUser[];
         }
+        console.log(`✅ ${type}: ${data.length} registros`);
       }
     }
 
@@ -242,6 +277,18 @@ export class InstagramAnalyzer {
   static analyze(data: InstagramDataComplete): CompleteAnalysis {
     const stats = this.calculateStats(data);
     const relationships = this.categorizeRelationships(data);
+
+    // MELHORADO: Detectar bloqueios com análise histórica
+    const previousAnalysis = HistoryManager.getLatestAnalysis();
+    if (previousAnalysis) {
+      relationships.suspicious = this.detectPossibleBlocks(
+        relationships.notFollowingBack,
+        data.recentlyUnfollowed,
+        data.followRequestsReceived,
+        previousAnalysis.analysis
+      );
+    }
+
     const socialHealth = this.calculateSocialHealth(data, stats, relationships);
     const insights = this.generateInsights(data, relationships);
     const alerts = this.generateAlerts(data, stats, relationships);
@@ -313,7 +360,7 @@ export class InstagramAnalyzer {
       data.recentlyUnfollowed.map(u => u.username)
     );
 
-    // Categorias básicas
+    // Categorias básicas - PRINCIPAL: notFollowingBack
     const mutual = data.followers.filter(u => followingSet.has(u.username));
     const notFollowingBack = data.following.filter(
       u => !followersSet.has(u.username)
@@ -338,7 +385,7 @@ export class InstagramAnalyzer {
 
     return {
       mutual,
-      notFollowingBack,
+      notFollowingBack, // PRINCIPAL - quem não te segue de volta
       notFollowedBack,
       vips,
       redFlags,
@@ -348,6 +395,69 @@ export class InstagramAnalyzer {
       stalkers,
       suspicious,
     };
+  }
+
+  /**
+   * NOVO: Detector avançado de possíveis bloqueios
+   */
+  private static detectPossibleBlocks(
+    notFollowingBack: InstagramUser[],
+    recentUnfollows: InstagramUser[],
+    followRequests: InstagramUser[],
+    previousAnalysis?: CompleteAnalysis
+  ): InstagramUser[] {
+    const blocks: InstagramUser[] = [];
+    const unfollowSet = new Set(recentUnfollows.map(u => u.username));
+    const requestSet = new Set(followRequests.map(u => u.username));
+
+    // Análise histórica se disponível
+    const previousMutuals =
+      previousAnalysis?.relationships.mutual.map(u => u.username) || [];
+    const previousFollowers =
+      previousAnalysis?.basicData.followers.map(u => u.username) || [];
+
+    for (const user of notFollowingBack) {
+      let blockProbability = 0;
+
+      // Não está na lista de unfollows recentes = possível bloqueio
+      if (!unfollowSet.has(user.username)) {
+        blockProbability += 40;
+      }
+
+      // Se você tinha solicitação pendente e sumiu
+      if (requestSet.has(user.username)) {
+        blockProbability += 30;
+      }
+
+      // Se era mútuo antes e agora não é
+      if (previousMutuals.includes(user.username)) {
+        blockProbability += 50;
+      }
+
+      // Se era seguidor antes e sumiu sem estar nos unfollows
+      if (
+        previousFollowers.includes(user.username) &&
+        !unfollowSet.has(user.username)
+      ) {
+        blockProbability += 60;
+      }
+
+      // Se seguia há muito tempo (timestamp antigo)
+      if (user.timestamp) {
+        const daysAgo = (Date.now() / 1000 - user.timestamp) / 86400;
+        if (daysAgo > 180) {
+          // Mais de 6 meses
+          blockProbability += 20;
+        }
+      }
+
+      // Se tem alta probabilidade, adicionar à lista
+      if (blockProbability >= 60) {
+        blocks.push(user);
+      }
+    }
+
+    return blocks;
   }
 
   /**
@@ -391,6 +501,11 @@ export class InstagramAnalyzer {
     // Gerar recomendações
     const recommendations: string[] = [];
 
+    if (stats.notFollowingBackCount > 50) {
+      recommendations.push(
+        `🚫 Você tem ${stats.notFollowingBackCount} pessoas que não te seguem de volta. Considere deixar de segui-las para melhorar seu ratio.`
+      );
+    }
     if (reciprocityScore < 30) {
       recommendations.push(
         'Considere deixar de seguir perfis que não te seguem de volta'
@@ -407,6 +522,11 @@ export class InstagramAnalyzer {
     if (relationships.ghosts.length > 10) {
       recommendations.push(
         'Muitas pessoas deram unfollow recentemente - avalie seu conteúdo'
+      );
+    }
+    if (relationships.suspicious.length > 0) {
+      recommendations.push(
+        `⚠️ ${relationships.suspicious.length} possíveis bloqueios detectados. Verifique esses perfis.`
       );
     }
 
@@ -462,6 +582,28 @@ export class InstagramAnalyzer {
   ): Alert[] {
     const alerts: Alert[] = [];
 
+    // ALERTA PRINCIPAL: Quem não te segue de volta
+    if (stats.notFollowingBackCount > 0) {
+      alerts.push({
+        type: 'danger',
+        title: `${stats.notFollowingBackCount} pessoas não te seguem de volta`,
+        message: `Você segue ${stats.notFollowingBackCount} pessoas que não te seguem. Considere deixar de segui-las.`,
+        category: 'unfollowers',
+        priority: 1,
+      });
+    }
+
+    // Possíveis bloqueios
+    if (relationships.suspicious.length > 0) {
+      alerts.push({
+        type: 'warning',
+        title: 'Possíveis bloqueios detectados',
+        message: `${relationships.suspicious.length} perfis podem ter te bloqueado`,
+        category: 'blocks',
+        priority: 2,
+      });
+    }
+
     // Alertas de perigo
     if (relationships.redFlags.length > 0) {
       alerts.push({
@@ -469,7 +611,7 @@ export class InstagramAnalyzer {
         title: 'Amigos próximos não recíprocos',
         message: `${relationships.redFlags.length} pessoas na sua lista de amigos próximos não te seguem`,
         category: 'privacy',
-        priority: 1,
+        priority: 3,
       });
     }
 
@@ -479,7 +621,7 @@ export class InstagramAnalyzer {
         title: 'Taxa alta de unfollow',
         message: `${data.recentlyUnfollowed.length} pessoas deixaram de te seguir recentemente`,
         category: 'engagement',
-        priority: 2,
+        priority: 4,
       });
     }
 
@@ -490,7 +632,7 @@ export class InstagramAnalyzer {
         title: 'Ratio desequilibrado',
         message: 'Você segue muito mais pessoas do que te seguem',
         category: 'balance',
-        priority: 3,
+        priority: 5,
       });
     }
 
@@ -501,7 +643,7 @@ export class InstagramAnalyzer {
         title: 'VIPs identificados',
         message: `${relationships.vips.length} seguidores mútuos estão nos seus amigos próximos`,
         category: 'social',
-        priority: 4,
+        priority: 6,
       });
     }
 
@@ -511,7 +653,7 @@ export class InstagramAnalyzer {
         title: 'Solicitações pendentes',
         message: `Você tem ${data.followRequestsReceived.length} solicitações de seguidor aguardando`,
         category: 'pending',
-        priority: 5,
+        priority: 7,
       });
     }
 
@@ -551,7 +693,7 @@ export class InstagramAnalyzer {
       u => !currFollowers.has(u.username)
     );
 
-    // DETECÇÃO DE BLOQUEIOS: Se sumiu e não está em unfollowed
+    // DETECÇÃO DE BLOQUEIOS MELHORADA
     const possibleBlocks = lostFollowers.filter(
       u => !prevUnfollowed.has(u.username)
     );

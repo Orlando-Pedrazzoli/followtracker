@@ -13,22 +13,28 @@ import {
   History,
   Trash2,
   RefreshCw,
+  UserMinus,
+  Ban,
+  AlertTriangle,
+  Users,
+  UserCheck,
+  Heart,
+  Ghost,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/ui/header';
 import { Footer } from '@/components/ui/footer';
-import { Card } from '@/components/ui/card';
-import RevolutionaryDashboard from '@/components/ui/RevolutionaryDashboard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { CompleteAnalysis } from '@/types/instagram';
 import { InstagramAnalyzer, HistoryManager } from '@/lib/instagram-parser';
 import toast from 'react-hot-toast';
-import jsPDF from 'jspdf';
 
 export default function AnalyzePage() {
   const [analysis, setAnalysis] = useState<CompleteAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showHistory, setShowHistory] = useState(false);
-  const [historicalAnalyses, setHistoricalAnalyses] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState('not-following-back');
   const router = useRouter();
 
   useEffect(() => {
@@ -37,7 +43,6 @@ export default function AnalyzePage() {
 
   const loadAnalysis = () => {
     try {
-      // Tentar carregar análise atual
       const currentAnalysis = localStorage.getItem('current-analysis');
 
       if (currentAnalysis) {
@@ -45,273 +50,81 @@ export default function AnalyzePage() {
         setAnalysis(analysisData);
         setIsLoading(false);
 
-        // Carregar histórico
-        const history = HistoryManager.getHistory();
-        setHistoricalAnalyses(history);
-
-        // Comparar com análise anterior se existir
+        // Comparar com análise anterior para detectar bloqueios
         const comparison = HistoryManager.compareWithPrevious(analysisData);
-        if (comparison) {
-          // Adicionar suspeitos de bloqueio
+        if (comparison && comparison.changes.possibleBlocks.length > 0) {
           analysisData.relationships.suspicious =
             comparison.changes.possibleBlocks;
           setAnalysis({ ...analysisData });
 
-          if (comparison.changes.possibleBlocks.length > 0) {
-            toast.error(
-              `⚠️ ${comparison.changes.possibleBlocks.length} possíveis bloqueios detectados!`,
-              { duration: 5000 }
-            );
-          }
+          toast.error(
+            `⚠️ ${comparison.changes.possibleBlocks.length} possíveis bloqueios detectados!`,
+            { duration: 5000 }
+          );
         }
 
-        toast.success('Análise carregada com sucesso!');
-      } else {
-        // Se não houver análise, verificar se há histórico
-        const latestAnalysis = HistoryManager.getLatestAnalysis();
-        if (latestAnalysis) {
-          setAnalysis(latestAnalysis.analysis);
-          setIsLoading(false);
-          toast.success('Última análise carregada do histórico');
-        } else {
-          setIsLoading(false);
+        // Alerta principal
+        if (analysisData.stats.notFollowingBackCount > 0) {
+          toast.error(
+            `😢 ${analysisData.stats.notFollowingBackCount} pessoas não te seguem de volta!`,
+            { duration: 6000, icon: '🚫' }
+          );
         }
+      } else {
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Erro ao carregar análise:', error);
       setIsLoading(false);
-      toast.error('Erro ao carregar análise');
     }
   };
 
-  const handleExport = (data: any, format: string) => {
-    if (format === 'pdf') {
-      exportToPDF();
-    } else if (format === 'json') {
-      exportToJSON();
-    } else if (format === 'csv') {
-      exportToCSV();
-    }
-  };
-
-  const exportToPDF = () => {
-    if (!analysis) return;
-
-    const doc = new jsPDF();
-
-    // Cabeçalho
-    doc.setFontSize(20);
-    doc.setTextColor(139, 92, 246); // Purple
-    doc.text('FollowerScan', 14, 20);
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Análise Revolucionária do Instagram', 14, 30);
-
-    // Data
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 40);
-
-    // Score Social
-    doc.setFontSize(16);
-    doc.setTextColor(139, 92, 246);
-    doc.text(
-      `Score Social: ${Math.round(analysis.socialHealth.overallScore)}/100`,
-      14,
-      55
-    );
-
-    // Estatísticas
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    let yPos = 70;
-
-    doc.text('📊 Estatísticas Gerais:', 14, yPos);
-    yPos += 10;
-    doc.setFontSize(10);
-    doc.text(`• Seguidores: ${analysis.stats.totalFollowers}`, 20, yPos);
-    yPos += 7;
-    doc.text(`• Seguindo: ${analysis.stats.totalFollowing}`, 20, yPos);
-    yPos += 7;
-    doc.text(`• Mútuos: ${analysis.stats.mutualCount}`, 20, yPos);
-    yPos += 7;
-    doc.text(
-      `• Taxa de Engajamento: ${analysis.stats.engagementRatio.toFixed(1)}%`,
-      20,
-      yPos
-    );
-
-    // Círculos Sociais
-    yPos += 15;
-    doc.setFontSize(12);
-    doc.text('👥 Círculos Sociais:', 14, yPos);
-    yPos += 10;
-    doc.setFontSize(10);
-    doc.text(`• VIPs: ${analysis.relationships.vips.length}`, 20, yPos);
-    yPos += 7;
-    doc.text(`• Fans: ${analysis.relationships.fans.length}`, 20, yPos);
-    yPos += 7;
-    doc.text(`• Crushes: ${analysis.relationships.crushes.length}`, 20, yPos);
-    yPos += 7;
-    doc.text(`• Ghosts: ${analysis.relationships.ghosts.length}`, 20, yPos);
-
-    // Alertas
-    if (analysis.socialHealth.alerts.length > 0) {
-      yPos += 15;
-      doc.setFontSize(12);
-      doc.text('⚠️ Alertas Importantes:', 14, yPos);
-      yPos += 10;
-      doc.setFontSize(10);
-
-      analysis.socialHealth.alerts.slice(0, 3).forEach(alert => {
-        doc.text(`• ${alert.title}`, 20, yPos);
-        yPos += 7;
-      });
-    }
-
-    // Recomendações
-    if (analysis.socialHealth.recommendations.length > 0) {
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 20;
-      }
-
-      doc.setFontSize(12);
-      doc.text('💡 Recomendações:', 14, yPos);
-      yPos += 10;
-      doc.setFontSize(10);
-
-      analysis.socialHealth.recommendations.forEach(rec => {
-        if (yPos > 270) {
-          doc.addPage();
-          yPos = 20;
-        }
-        const lines = doc.splitTextToSize(`• ${rec}`, 170);
-        lines.forEach((line: string) => {
-          doc.text(line, 20, yPos);
-          yPos += 7;
-        });
-      });
-    }
-
-    // Rodapé
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(
-        `Página ${i} de ${pageCount} | FollowerScan - www.followerscan.com`,
-        doc.internal.pageSize.width / 2,
-        doc.internal.pageSize.height - 10,
-        { align: 'center' }
-      );
-    }
-
-    doc.save(
-      `followerscan_analysis_${new Date().toISOString().split('T')[0]}.pdf`
-    );
-    toast.success('PDF exportado com sucesso!');
-  };
-
-  const exportToJSON = () => {
-    if (!analysis) return;
-
-    const dataStr = JSON.stringify(analysis, null, 2);
-    const blob = new Blob([dataStr], { type: 'application/json' });
+  const exportToCSV = (data: any[], filename: string) => {
+    const csv = data
+      .map(
+        user =>
+          `${user.username},${
+            user.href || `https://instagram.com/${user.username}`
+          }`
+      )
+      .join('\n');
+    const blob = new Blob([`Username,Profile Link\n${csv}`], {
+      type: 'text/csv',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `followerscan_analysis_${
-      new Date().toISOString().split('T')[0]
-    }.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-
-    toast.success('JSON exportado com sucesso!');
-  };
-
-  const exportToCSV = () => {
-    if (!analysis) return;
-
-    // Criar CSV com principais métricas
-    const csvData = [
-      ['FollowerScan - Análise do Instagram'],
-      ['Data', new Date().toLocaleString('pt-BR')],
-      [''],
-      ['Métrica', 'Valor'],
-      ['Score Social', Math.round(analysis.socialHealth.overallScore)],
-      ['Seguidores', analysis.stats.totalFollowers],
-      ['Seguindo', analysis.stats.totalFollowing],
-      ['Mútuos', analysis.stats.mutualCount],
-      ['Taxa de Engajamento', `${analysis.stats.engagementRatio.toFixed(1)}%`],
-      ['VIPs', analysis.relationships.vips.length],
-      ['Fans', analysis.relationships.fans.length],
-      ['Crushes', analysis.relationships.crushes.length],
-      ['Ghosts', analysis.relationships.ghosts.length],
-      ['Bloqueados', analysis.stats.blockedCount],
-      ['Restritos', analysis.stats.restrictedCount],
-      ['Close Friends', analysis.stats.closeFriendsCount],
-      ['Hashtags Seguidas', analysis.basicData.followingHashtags.length],
-    ];
-
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `followerscan_metrics_${
-      new Date().toISOString().split('T')[0]
-    }.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
-    toast.success('CSV exportado com sucesso!');
+    toast.success('Lista exportada com sucesso!');
   };
 
   const handleShare = async () => {
-    if (!analysis || !navigator.share) {
-      // Fallback para copiar
-      const text = `🚀 Minha Análise FollowerScan
-      
-📊 Score Social: ${Math.round(analysis?.socialHealth.overallScore || 0)}/100
-👥 Seguidores: ${analysis?.stats.totalFollowers || 0}
-✅ Mútuos: ${analysis?.stats.mutualCount || 0}
-💜 VIPs: ${analysis?.relationships.vips.length || 0}
+    if (!analysis) return;
+
+    const text = `📊 Minha Análise do Instagram:
+    
+🚫 ${analysis.stats.notFollowingBackCount} não me seguem de volta
+✅ ${analysis.stats.mutualCount} seguidores mútuos
+📈 ${analysis.stats.engagementRatio.toFixed(1)}% de engajamento
 
 Faça sua análise em: www.followerscan.com`;
 
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Análise do Instagram',
+          text: text,
+        });
+      } catch (error) {
+        navigator.clipboard.writeText(text);
+        toast.success('Copiado para área de transferência!');
+      }
+    } else {
       navigator.clipboard.writeText(text);
       toast.success('Copiado para área de transferência!');
-      return;
     }
-
-    try {
-      await navigator.share({
-        title: 'Minha Análise FollowerScan',
-        text: `Score Social: ${Math.round(
-          analysis.socialHealth.overallScore
-        )}/100 | ${analysis.stats.totalFollowers} seguidores`,
-        url: 'https://www.followerscan.com',
-      });
-    } catch (error) {
-      console.log('Share cancelled');
-    }
-  };
-
-  const handleCompare = () => {
-    setShowHistory(!showHistory);
-    if (!showHistory && historicalAnalyses.length === 0) {
-      toast.error('Nenhuma análise anterior para comparar');
-    }
-  };
-
-  const saveCurrentAnalysis = () => {
-    if (!analysis) return;
-
-    const id = HistoryManager.saveAnalysis(analysis);
-    setHistoricalAnalyses(HistoryManager.getHistory());
-    toast.success('Análise salva no histórico!');
   };
 
   const clearAnalysis = () => {
@@ -333,9 +146,7 @@ Faça sua análise em: www.followerscan.com`;
             transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className='w-16 h-16 border-4 border-white border-t-transparent rounded-full mx-auto mb-4'
           />
-          <p className='text-white text-lg'>
-            Carregando análise revolucionária...
-          </p>
+          <p className='text-white text-lg'>Carregando análise...</p>
         </div>
       </div>
     );
@@ -344,20 +155,7 @@ Faça sua análise em: www.followerscan.com`;
   if (!analysis) {
     return (
       <div className='min-h-screen gradient-bg flex flex-col'>
-        <Header
-          subtitle='Dashboard Revolucionário'
-          rightContent={
-            <Button
-              variant='ghost'
-              onClick={() => router.push('/')}
-              className='btn-header'
-            >
-              <ArrowLeft className='w-4 h-4 mr-2' />
-              Início
-            </Button>
-          }
-        />
-
+        <Header subtitle='Análise de Seguidores' />
         <main className='container mx-auto px-4 py-16 flex-1'>
           <div className='text-center'>
             <motion.div
@@ -372,38 +170,20 @@ Faça sua análise em: www.followerscan.com`;
                 Nenhuma análise encontrada
               </h2>
               <p className='text-white text-lg opacity-90 max-w-md mx-auto'>
-                Faça upload dos seus arquivos do Instagram para começar a
-                análise revolucionária.
+                Faça upload dos seus arquivos do Instagram para descobrir quem
+                não te segue de volta.
               </p>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className='max-w-md mx-auto'
+            <Button
+              onClick={() => router.push('/upload')}
+              className='bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
+              size='lg'
             >
-              <Card className='p-6 text-center hover:shadow-xl transition-shadow card-instagram'>
-                <div className='w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-                  <Upload className='w-6 h-6 text-purple-600' />
-                </div>
-                <h3 className='font-semibold text-lg mb-2'>
-                  Upload de 12 Tipos de Dados
-                </h3>
-                <p className='text-gray-600 text-sm mb-4'>
-                  Análise completa com detector de bloqueios e score social
-                </p>
-                <Button
-                  onClick={() => router.push('/upload')}
-                  className='bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
-                >
-                  Começar Upload →
-                </Button>
-              </Card>
-            </motion.div>
+              <Upload className='w-5 h-5 mr-2' />
+              Fazer Upload
+            </Button>
           </div>
         </main>
-
         <Footer />
       </div>
     );
@@ -412,29 +192,9 @@ Faça sua análise em: www.followerscan.com`;
   return (
     <div className='min-h-screen gradient-bg flex flex-col'>
       <Header
-        subtitle={`Score Social: ${Math.round(
-          analysis.socialHealth.overallScore
-        )}/100`}
+        subtitle={`${analysis.stats.notFollowingBackCount} não te seguem de volta`}
         rightContent={
           <div className='flex items-center gap-2'>
-            <Button
-              variant='ghost'
-              onClick={saveCurrentAnalysis}
-              className='btn-header hidden md:flex'
-              title='Salvar no histórico'
-            >
-              <Save className='w-4 h-4 mr-2' />
-              Salvar
-            </Button>
-            <Button
-              variant='ghost'
-              onClick={handleCompare}
-              className='btn-header hidden md:flex'
-              title='Comparar com histórico'
-            >
-              <History className='w-4 h-4 mr-2' />
-              Histórico
-            </Button>
             <Button
               variant='ghost'
               onClick={handleShare}
@@ -466,51 +226,403 @@ Faça sua análise em: www.followerscan.com`;
       />
 
       <main className='container mx-auto px-4 py-8 flex-1'>
-        {/* Histórico (se ativo) */}
-        {showHistory && historicalAnalyses.length > 0 && (
+        {/* Alertas Principais */}
+        {analysis.stats.notFollowingBackCount > 0 && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className='mb-8'
+            className='mb-6'
           >
-            <Card className='p-6'>
-              <h3 className='font-bold text-lg mb-4'>📊 Análises Anteriores</h3>
-              <div className='space-y-2'>
-                {historicalAnalyses.slice(0, 5).map(hist => (
-                  <div
-                    key={hist.id}
-                    className='flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer'
-                    onClick={() => {
-                      setAnalysis(hist.analysis);
-                      setShowHistory(false);
-                      toast.success('Análise histórica carregada');
-                    }}
-                  >
-                    <div>
-                      <p className='font-medium'>{hist.label}</p>
-                      <p className='text-xs text-gray-500'>
-                        Score:{' '}
-                        {Math.round(hist.analysis.socialHealth.overallScore)} |{' '}
-                        {hist.analysis.stats.totalFollowers} seguidores
-                      </p>
-                    </div>
-                    <p className='text-sm text-gray-400'>
-                      {new Date(hist.timestamp).toLocaleDateString('pt-BR')}
+            <Card className='border-red-300 bg-red-50'>
+              <CardContent className='pt-6'>
+                <div className='flex items-center gap-4'>
+                  <AlertTriangle className='w-12 h-12 text-red-500 flex-shrink-0' />
+                  <div>
+                    <h3 className='text-xl font-bold text-red-800'>
+                      {analysis.stats.notFollowingBackCount} pessoas não te
+                      seguem de volta!
+                    </h3>
+                    <p className='text-red-700'>
+                      Você segue essas pessoas mas elas não te seguem. Considere
+                      deixar de segui-las.
                     </p>
                   </div>
-                ))}
-              </div>
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
         )}
 
-        {/* Dashboard Principal */}
-        <RevolutionaryDashboard
-          analysis={analysis}
-          onExport={handleExport}
-          onShare={handleShare}
-          onCompare={handleCompare}
-        />
+        {analysis.relationships.suspicious.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='mb-6'
+          >
+            <Card className='border-yellow-300 bg-yellow-50'>
+              <CardContent className='pt-6'>
+                <div className='flex items-center gap-4'>
+                  <Ban className='w-12 h-12 text-yellow-600 flex-shrink-0' />
+                  <div>
+                    <h3 className='text-xl font-bold text-yellow-800'>
+                      {analysis.relationships.suspicious.length} possíveis
+                      bloqueios detectados
+                    </h3>
+                    <p className='text-yellow-700'>
+                      Esses perfis sumiram sem aparecer nos unfollows recentes.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Estatísticas */}
+        <div className='grid grid-cols-2 md:grid-cols-5 gap-4 mb-8'>
+          <Card className='border-gray-200'>
+            <CardContent className='pt-6 text-center'>
+              <Users className='w-8 h-8 mx-auto mb-2 text-blue-500' />
+              <div className='text-2xl font-bold'>
+                {analysis.stats.totalFollowers}
+              </div>
+              <div className='text-sm text-gray-600'>Seguidores</div>
+            </CardContent>
+          </Card>
+
+          <Card className='border-gray-200'>
+            <CardContent className='pt-6 text-center'>
+              <UserCheck className='w-8 h-8 mx-auto mb-2 text-purple-500' />
+              <div className='text-2xl font-bold'>
+                {analysis.stats.totalFollowing}
+              </div>
+              <div className='text-sm text-gray-600'>Seguindo</div>
+            </CardContent>
+          </Card>
+
+          <Card className='border-red-300 bg-red-50'>
+            <CardContent className='pt-6 text-center'>
+              <UserMinus className='w-8 h-8 mx-auto mb-2 text-red-500' />
+              <div className='text-2xl font-bold text-red-600'>
+                {analysis.stats.notFollowingBackCount}
+              </div>
+              <div className='text-sm text-red-600 font-semibold'>
+                Não te seguem
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className='border-green-300 bg-green-50'>
+            <CardContent className='pt-6 text-center'>
+              <Heart className='w-8 h-8 mx-auto mb-2 text-green-500' />
+              <div className='text-2xl font-bold text-green-600'>
+                {analysis.stats.mutualCount}
+              </div>
+              <div className='text-sm text-green-600'>Mútuos</div>
+            </CardContent>
+          </Card>
+
+          <Card className='border-purple-300 bg-purple-50'>
+            <CardContent className='pt-6 text-center'>
+              <BarChart3 className='w-8 h-8 mx-auto mb-2 text-purple-500' />
+              <div className='text-2xl font-bold text-purple-600'>
+                {analysis.stats.engagementRatio.toFixed(1)}%
+              </div>
+              <div className='text-sm text-purple-600'>Engajamento</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs de Análise */}
+        <Card>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className='grid w-full grid-cols-5'>
+              <TabsTrigger
+                value='not-following-back'
+                className='text-xs md:text-sm'
+              >
+                <UserMinus className='w-4 h-4 mr-1' />
+                Não Seguem ({analysis.stats.notFollowingBackCount})
+              </TabsTrigger>
+              <TabsTrigger value='suspicious' className='text-xs md:text-sm'>
+                <Ban className='w-4 h-4 mr-1' />
+                Bloqueios ({analysis.relationships.suspicious.length})
+              </TabsTrigger>
+              <TabsTrigger value='mutual' className='text-xs md:text-sm'>
+                <Heart className='w-4 h-4 mr-1' />
+                Mútuos ({analysis.stats.mutualCount})
+              </TabsTrigger>
+              <TabsTrigger value='not-followed' className='text-xs md:text-sm'>
+                <Users className='w-4 h-4 mr-1' />
+                Não Seguidos ({analysis.stats.notFollowedBackCount})
+              </TabsTrigger>
+              <TabsTrigger value='ghosts' className='text-xs md:text-sm'>
+                <Ghost className='w-4 h-4 mr-1' />
+                Unfollows ({analysis.relationships.ghosts.length})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab: Não Te Seguem de Volta (PRINCIPAL) */}
+            <TabsContent value='not-following-back'>
+              <CardHeader>
+                <CardTitle className='text-red-600'>
+                  Pessoas que você segue mas não te seguem de volta
+                </CardTitle>
+                <p className='text-gray-600'>
+                  Total: {analysis.stats.notFollowingBackCount} pessoas
+                </p>
+                <Button
+                  onClick={() =>
+                    exportToCSV(
+                      analysis.relationships.notFollowingBack,
+                      'nao_te_seguem_de_volta.csv'
+                    )
+                  }
+                  className='w-fit mt-4'
+                  variant='outline'
+                >
+                  <Download className='w-4 h-4 mr-2' />
+                  Exportar Lista
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                  {analysis.relationships.notFollowingBack
+                    .slice(0, 50)
+                    .map((user, index) => (
+                      <div
+                        key={index}
+                        className='bg-red-50 border border-red-200 rounded-lg p-3 hover:shadow-md transition-shadow'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <div className='font-semibold text-gray-800'>
+                              @{user.username}
+                            </div>
+                            {user.timestamp && (
+                              <div className='text-xs text-gray-500'>
+                                Seguindo há{' '}
+                                {Math.floor(
+                                  (Date.now() / 1000 - user.timestamp) / 86400
+                                )}{' '}
+                                dias
+                              </div>
+                            )}
+                          </div>
+                          <a
+                            href={
+                              user.href ||
+                              `https://instagram.com/${user.username}`
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-red-500 hover:text-red-600 font-medium'
+                          >
+                            Ver →
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+                {analysis.relationships.notFollowingBack.length > 50 && (
+                  <p className='text-center text-gray-600 mt-4'>
+                    Mostrando 50 de{' '}
+                    {analysis.relationships.notFollowingBack.length} resultados
+                  </p>
+                )}
+              </CardContent>
+            </TabsContent>
+
+            {/* Tab: Possíveis Bloqueios */}
+            <TabsContent value='suspicious'>
+              <CardHeader>
+                <CardTitle className='text-yellow-600'>
+                  Possíveis Bloqueios (Beta)
+                </CardTitle>
+                <p className='text-gray-600'>
+                  Perfis que sumiram sem aparecer nos unfollows
+                </p>
+              </CardHeader>
+              <CardContent>
+                {analysis.relationships.suspicious.length === 0 ? (
+                  <div className='text-center py-8'>
+                    <Ban className='w-12 h-12 mx-auto text-gray-300 mb-4' />
+                    <p className='text-gray-500'>
+                      Nenhum bloqueio suspeito detectado
+                    </p>
+                  </div>
+                ) : (
+                  <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                    {analysis.relationships.suspicious.map((user, index) => (
+                      <div
+                        key={index}
+                        className='bg-yellow-50 border border-yellow-200 rounded-lg p-3'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <div className='font-semibold text-gray-800'>
+                              @{user.username}
+                            </div>
+                            <div className='text-xs text-yellow-700'>
+                              Possível bloqueio
+                            </div>
+                          </div>
+                          <a
+                            href={
+                              user.href ||
+                              `https://instagram.com/${user.username}`
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-yellow-600 hover:text-yellow-700 font-medium'
+                          >
+                            Verificar →
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </TabsContent>
+
+            {/* Tab: Mútuos */}
+            <TabsContent value='mutual'>
+              <CardHeader>
+                <CardTitle className='text-green-600'>
+                  Seguidores Mútuos
+                </CardTitle>
+                <p className='text-gray-600'>
+                  Pessoas que vocês se seguem mutuamente
+                </p>
+                <Button
+                  onClick={() =>
+                    exportToCSV(
+                      analysis.relationships.mutual,
+                      'seguidores_mutuos.csv'
+                    )
+                  }
+                  className='w-fit mt-4'
+                  variant='outline'
+                >
+                  <Download className='w-4 h-4 mr-2' />
+                  Exportar Lista
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                  {analysis.relationships.mutual
+                    .slice(0, 50)
+                    .map((user, index) => (
+                      <div
+                        key={index}
+                        className='bg-green-50 border border-green-200 rounded-lg p-3'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div className='font-semibold text-gray-800'>
+                            @{user.username} ✅
+                          </div>
+                          <a
+                            href={
+                              user.href ||
+                              `https://instagram.com/${user.username}`
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-green-500 hover:text-green-600 font-medium'
+                          >
+                            Ver →
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </TabsContent>
+
+            {/* Tab: Não Seguidos */}
+            <TabsContent value='not-followed'>
+              <CardHeader>
+                <CardTitle>Pessoas que te seguem mas você não segue</CardTitle>
+                <p className='text-gray-600'>
+                  Potenciais seguidores para seguir de volta
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                  {analysis.relationships.notFollowedBack
+                    .slice(0, 50)
+                    .map((user, index) => (
+                      <div
+                        key={index}
+                        className='bg-blue-50 border border-blue-200 rounded-lg p-3'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div className='font-semibold text-gray-800'>
+                            @{user.username}
+                          </div>
+                          <a
+                            href={
+                              user.href ||
+                              `https://instagram.com/${user.username}`
+                            }
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='text-blue-500 hover:text-blue-600 font-medium'
+                          >
+                            Seguir →
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </TabsContent>
+
+            {/* Tab: Ghosts (Unfollows) */}
+            <TabsContent value='ghosts'>
+              <CardHeader>
+                <CardTitle>Unfollows Recentes</CardTitle>
+                <p className='text-gray-600'>
+                  Pessoas que você deixou de seguir recentemente
+                </p>
+              </CardHeader>
+              <CardContent>
+                {analysis.relationships.ghosts.length === 0 ? (
+                  <div className='text-center py-8'>
+                    <Ghost className='w-12 h-12 mx-auto text-gray-300 mb-4' />
+                    <p className='text-gray-500'>Nenhum unfollow recente</p>
+                  </div>
+                ) : (
+                  <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-3'>
+                    {analysis.relationships.ghosts.map((user, index) => (
+                      <div
+                        key={index}
+                        className='bg-purple-50 border border-purple-200 rounded-lg p-3'
+                      >
+                        <div className='flex items-center justify-between'>
+                          <div>
+                            <div className='font-semibold text-gray-800'>
+                              @{user.username}
+                            </div>
+                            {user.timestamp && (
+                              <div className='text-xs text-gray-500'>
+                                {new Date(
+                                  user.timestamp * 1000
+                                ).toLocaleDateString('pt-BR')}
+                              </div>
+                            )}
+                          </div>
+                          <span className='text-purple-500'>💔</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </TabsContent>
+          </Tabs>
+        </Card>
       </main>
 
       <Footer />

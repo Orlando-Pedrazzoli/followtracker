@@ -26,6 +26,7 @@ import {
   Star,
   UserX,
   Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -176,13 +177,23 @@ export default function UploadPage() {
       const newFiles = new Map(uploadedFiles);
       const filesToProcess: { name: string; content: string }[] = [];
 
-      // Procurar por todos os arquivos JSON no ZIP
-      for (const [fileName, zipEntry] of Object.entries(zipContent.files)) {
+      // Procurar recursivamente por arquivos JSON em qualquer pasta
+      for (const [path, zipEntry] of Object.entries(zipContent.files)) {
         if (zipEntry.dir) continue;
 
+        // Pegar apenas o nome do arquivo, ignorando o caminho
+        const fileName = path.split('/').pop() || '';
+
         if (fileName.toLowerCase().endsWith('.json')) {
-          const content = await zipEntry.async('string');
-          filesToProcess.push({ name: fileName, content });
+          try {
+            const content = await zipEntry.async('string');
+            filesToProcess.push({ name: fileName, content });
+
+            // Log para debug
+            console.log(`Arquivo encontrado: ${fileName}`);
+          } catch (err) {
+            console.error(`Erro ao ler ${fileName}:`, err);
+          }
         }
       }
 
@@ -192,6 +203,8 @@ export default function UploadPage() {
 
       // Adicionar arquivos processados ao mapa
       let filesFound = 0;
+      let notFollowingBackCount = 0;
+
       for (const [key, data] of Object.entries(processedData)) {
         if (Array.isArray(data) && data.length > 0) {
           newFiles.set(key as keyof InstagramDataComplete, data);
@@ -208,13 +221,48 @@ export default function UploadPage() {
       setUploadProgress(100);
 
       if (filesFound === 0) {
-        toast.error('Nenhum arquivo válido encontrado no ZIP');
+        toast.error(
+          'Nenhum arquivo válido encontrado no ZIP. Verifique se o ZIP contém os arquivos JSON do Instagram.'
+        );
       } else {
         toast.success(`🎉 ${filesFound} arquivos extraídos com sucesso!`);
+
+        // Se encontrou os arquivos principais, mostrar estatística rápida
+        if (newFiles.has('followers') && newFiles.has('following')) {
+          const followersSet = new Set(
+            newFiles.get('followers')?.map(u => u.username)
+          );
+          const following = newFiles.get('following') || [];
+          notFollowingBackCount = following.filter(
+            u => !followersSet.has(u.username)
+          ).length;
+
+          if (notFollowingBackCount > 0) {
+            toast.error(
+              `⚠️ ATENÇÃO: ${notFollowingBackCount} pessoas não te seguem de volta!`,
+              {
+                duration: 6000,
+                icon: '😢',
+                style: {
+                  background: '#FEE',
+                  color: '#C00',
+                  fontWeight: 'bold',
+                },
+              }
+            );
+          } else {
+            toast.success(
+              `✨ Perfeito! Todos que você segue também te seguem de volta!`,
+              { duration: 5000 }
+            );
+          }
+        }
       }
     } catch (error) {
       console.error('Erro ao processar ZIP:', error);
-      toast.error('Erro ao extrair arquivo ZIP');
+      toast.error(
+        'Erro ao extrair arquivo ZIP. Tente arrastar os arquivos JSON individualmente.'
+      );
     } finally {
       setIsExtracting(false);
       setUploadProgress(0);
@@ -304,6 +352,15 @@ export default function UploadPage() {
       localStorage.setItem('current-analysis', JSON.stringify(analysis));
       localStorage.setItem('current-analysis-id', analysisId);
 
+      // Alerta com estatística principal
+      const notFollowingBackCount = analysis.stats.notFollowingBackCount;
+      if (notFollowingBackCount > 0) {
+        toast.error(
+          `🚫 ${notFollowingBackCount} pessoas não te seguem de volta!`,
+          { duration: 5000 }
+        );
+      }
+
       toast.success('Análise completa gerada!');
       router.push('/analyze');
     } catch (error) {
@@ -321,18 +378,10 @@ export default function UploadPage() {
     toast.success('Arquivo removido');
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
     <div className='min-h-screen gradient-bg flex flex-col'>
       <Header
-        subtitle='Upload Revolucionário - 12 Tipos de Dados'
+        subtitle='Upload de Dados do Instagram'
         rightContent={
           <Button
             variant='ghost'
@@ -353,7 +402,7 @@ export default function UploadPage() {
             animate={{ opacity: 1, y: 0 }}
             className='text-white text-3xl lg:text-4xl font-bold mb-4 drop-shadow-lg'
           >
-            🚀 Dashboard Revolucionário do Instagram
+            🔍 Descubra Quem Não Te Segue de Volta
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -361,9 +410,8 @@ export default function UploadPage() {
             transition={{ delay: 0.1 }}
             className='text-white text-lg opacity-90 max-w-2xl mx-auto drop-shadow'
           >
-            Análise completa de <strong>12 tipos de dados</strong> do Instagram.
-            Detector de bloqueios, score social, insights avançados e muito
-            mais!
+            Análise completa com <strong>detector de bloqueios</strong>,
+            unfollowers e estatísticas detalhadas do seu perfil
           </motion.p>
         </div>
 
@@ -396,7 +444,7 @@ export default function UploadPage() {
             <CardHeader>
               <CardTitle className='text-center'>
                 <Upload className='w-8 h-8 mx-auto mb-2' />
-                Arraste o ZIP do Instagram ou JSONs Individuais
+                Arraste o ZIP do Instagram aqui
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -431,11 +479,18 @@ export default function UploadPage() {
                   <>
                     <FileArchive className='w-16 h-16 mx-auto mb-4 text-purple-400' />
                     <p className='text-lg font-medium mb-2'>
-                      Arraste o arquivo ZIP do Instagram aqui
+                      Arraste o arquivo ZIP completo do Instagram
                     </p>
                     <p className='text-sm text-gray-600'>
-                      ou clique para selecionar arquivos
+                      ou clique para selecionar arquivos JSON individuais
                     </p>
+                    <div className='mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-w-md mx-auto'>
+                      <p className='text-xs text-yellow-800'>
+                        <strong>📌 Dica:</strong> O ZIP do Instagram contém uma
+                        pasta com todos os JSONs. Nosso sistema processa
+                        automaticamente!
+                      </p>
+                    </div>
                   </>
                 )}
               </div>
@@ -516,6 +571,45 @@ export default function UploadPage() {
             })}
           </div>
 
+          {/* Alert for Not Following Back */}
+          {uploadedFiles.has('followers') && uploadedFiles.has('following') && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className='mb-8'
+            >
+              <Card className='border-red-200 bg-gradient-to-r from-red-50 to-pink-50'>
+                <CardContent className='pt-6'>
+                  <div className='flex items-center gap-3'>
+                    <AlertTriangle className='w-8 h-8 text-red-500 flex-shrink-0' />
+                    <div>
+                      <h3 className='text-lg font-bold text-red-800'>
+                        Análise Rápida
+                      </h3>
+                      <p className='text-red-700'>
+                        {(() => {
+                          const followersSet = new Set(
+                            uploadedFiles
+                              .get('followers')
+                              ?.map(u => u.username) || []
+                          );
+                          const following =
+                            uploadedFiles.get('following') || [];
+                          const notFollowingBack = following.filter(
+                            u => !followersSet.has(u.username)
+                          );
+                          return notFollowingBack.length > 0
+                            ? `${notFollowingBack.length} pessoas não te seguem de volta! Clique em analisar para ver quem são.`
+                            : 'Todos que você segue também te seguem de volta! 🎉';
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Analysis Button */}
           <div className='flex justify-center'>
             <Button
@@ -538,7 +632,7 @@ export default function UploadPage() {
                 </>
               ) : (
                 <>
-                  🚀 Gerar Análise Revolucionária
+                  🔍 Ver Quem Não Te Segue
                   <ArrowRight className='w-5 h-5 ml-2' />
                 </>
               )}
@@ -562,32 +656,32 @@ export default function UploadPage() {
                   <div className='grid md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
                       <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>Detector de Bloqueios:</strong> 60-90% de
-                        precisão
+                        <CheckCircle className='w-4 h-4 text-red-500' />
+                        <strong className='text-red-700'>
+                          Quem não te segue de volta
+                        </strong>
+                      </p>
+                      <p className='text-sm flex items-center gap-2'>
+                        <CheckCircle className='w-4 h-4 text-orange-500' />
+                        <strong>Detector de Bloqueios:</strong> 60-90% precisão
                       </p>
                       <p className='text-sm flex items-center gap-2'>
                         <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>Score Social:</strong> Gamificação viciante
-                      </p>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>Círculos Sociais:</strong> VIPs, Crushes, Ghosts
+                        <strong>Seguidores Mútuos</strong>
                       </p>
                     </div>
                     <div className='space-y-2'>
                       <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>Timeline:</strong> Histórico de mudanças
+                        <CheckCircle className='w-4 h-4 text-purple-500' />
+                        <strong>Unfollows Recentes</strong>
                       </p>
                       <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>Insights IA:</strong> Recomendações
-                        personalizadas
+                        <CheckCircle className='w-4 h-4 text-blue-500' />
+                        <strong>Taxa de Engajamento</strong>
                       </p>
                       <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
-                        <strong>12 Tipos de Dados:</strong> Análise completa
+                        <CheckCircle className='w-4 h-4 text-pink-500' />
+                        <strong>Score Social</strong>
                       </p>
                     </div>
                   </div>
@@ -607,8 +701,7 @@ export default function UploadPage() {
                   </p>
                   <p className='text-sm text-green-700'>
                     Processamento 100% local. Nenhum dado é enviado para
-                    servidores. Seus dados ficam apenas no seu navegador e você
-                    tem controle total.
+                    servidores. Seus dados ficam apenas no seu navegador.
                   </p>
                 </div>
               </div>
