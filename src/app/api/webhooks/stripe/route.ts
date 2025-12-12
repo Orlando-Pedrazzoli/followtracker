@@ -4,7 +4,7 @@ import Stripe from 'stripe';
 import { clerkClient } from '@clerk/nextjs/server';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2025-11-17.clover',
 });
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
         const tierId = session.metadata?.tierId;
 
         if (clerkUserId && tierId) {
-          // Atualizar metadata do usuário no Clerk
           await clerk.users.updateUser(clerkUserId, {
             publicMetadata: {
               subscriptionTier: tierId,
@@ -65,9 +64,9 @@ export async function POST(req: NextRequest) {
 
         if (clerkUserId) {
           const status = subscription.status;
-          const periodEnd = new Date(subscription.current_period_end * 1000).toISOString();
+          const periodEnd = new Date((subscription as any).current_period_end * 1000).toISOString();
+          const periodStart = (subscription as any).current_period_start;
 
-          // Buscar usuário atual para manter dados existentes
           const user = await clerk.users.getUser(clerkUserId);
           const currentMetadata = user.publicMetadata as Record<string, any>;
 
@@ -76,8 +75,7 @@ export async function POST(req: NextRequest) {
               ...currentMetadata,
               subscriptionStatus: status,
               subscriptionPeriodEnd: periodEnd,
-              // Reset usage no início de novo período
-              usedAnalyses: subscription.current_period_start > (Date.now() / 1000 - 86400) 
+              usedAnalyses: periodStart > (Date.now() / 1000 - 86400) 
                 ? 0 
                 : currentMetadata.usedAnalyses || 0,
             },
@@ -93,7 +91,6 @@ export async function POST(req: NextRequest) {
         const clerkUserId = subscription.metadata?.clerkUserId;
 
         if (clerkUserId) {
-          // Downgrade para free
           await clerk.users.updateUser(clerkUserId, {
             publicMetadata: {
               subscriptionTier: 'free',
@@ -110,7 +107,7 @@ export async function POST(req: NextRequest) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const subscriptionId = invoice.subscription as string;
+        const subscriptionId = (invoice as any).subscription as string;
         
         if (subscriptionId) {
           const subscription = await stripe.subscriptions.retrieve(subscriptionId);
