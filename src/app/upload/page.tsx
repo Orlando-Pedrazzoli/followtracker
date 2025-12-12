@@ -230,12 +230,10 @@ export default function UploadPage() {
         // Se encontrou os arquivos principais, mostrar estatística rápida
         if (newFiles.has('followers') && newFiles.has('following')) {
           const followersSet = new Set(
-            newFiles.get('followers')?.map(u => u.username)
+            newFiles.get('followers')?.map((u: any) => u.username)
           );
           const following = newFiles.get('following') || [];
-          notFollowingBackCount = following.filter(
-            u => !followersSet.has(u.username)
-          ).length;
+          notFollowingBackCount = following.filter((u: any) => !followersSet.has(u.username))
 
           if (notFollowingBackCount > 0) {
             toast.error(
@@ -591,13 +589,11 @@ export default function UploadPage() {
                           const followersSet = new Set(
                             uploadedFiles
                               .get('followers')
-                              ?.map(u => u.username) || []
+                              ?.map((u: any) => u.username) || []
                           );
                           const following =
                             uploadedFiles.get('following') || [];
-                          const notFollowingBack = following.filter(
-                            u => !followersSet.has(u.username)
-                          );
+                          const notFollowingBack = following.filter((u: any) => !followersSet.has(u.username));
                           return notFollowingBack.length > 0
                             ? `${notFollowingBack.length} pessoas não te seguem de volta! Clique em analisar para ver quem são.`
                             : 'Todos que você segue também te seguem de volta! 🎉';
