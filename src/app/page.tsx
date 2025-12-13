@@ -11,7 +11,6 @@ import {
   BarChart3,
   Shield,
   Zap,
-  TrendingUp,
   Ban,
   Crown,
   Check,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Header } from '@/components/ui/header';
 import { Footer } from '@/components/ui/footer';
 
 export default function HomePage() {
@@ -26,84 +26,45 @@ export default function HomePage() {
   const { user, isLoaded } = useUser();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-full blur-3xl" />
-        
-        {/* Grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)`,
-            backgroundSize: '50px 50px',
-          }}
-        />
-      </div>
+    <div className="min-h-screen app-bg-animated">
+      {/* Background Decorations */}
+      <div className="bg-decorations" />
+      <div className="bg-grid" />
 
-      {/* Header */}
-      <header className="relative z-10 border-b border-white/10 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
-                <Users className="text-white w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-white font-bold text-xl tracking-tight">FollowerScan</h1>
-                <p className="text-slate-400 text-xs">Análise de Seguidores Instagram</p>
-              </div>
-            </div>
-            
-            <nav className="hidden md:flex items-center gap-6">
-              <button
-                onClick={() => router.push('/pricing')}
-                className="text-slate-300 hover:text-white transition-colors text-sm"
-              >
-                Preços
-              </button>
-              <button
-                onClick={() => router.push('/tutorial')}
-                className="text-slate-300 hover:text-white transition-colors text-sm"
-              >
-                Tutorial
-              </button>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              {isLoaded && user ? (
-                <>
-                  <Button
-                    onClick={() => router.push('/dashboard/analyze')}
-                    className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Dashboard
+      {/* Header com navegação */}
+      <Header
+        showNav={true}
+        rightContent={
+          <>
+            {isLoaded && user ? (
+              <>
+                <Button
+                  onClick={() => router.push('/dashboard/analyze')}
+                  className="btn-secondary"
+                >
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </Button>
+                <UserButton afterSignOutUrl="/" />
+              </>
+            ) : (
+              <>
+                <SignInButton mode="modal">
+                  <Button variant="ghost" className="btn-ghost">
+                    Entrar
                   </Button>
-                  <UserButton afterSignOutUrl="/" />
-                </>
-              ) : (
-                <>
-                  <SignInButton mode="modal">
-                    <Button variant="ghost" className="text-slate-300 hover:text-white">
-                      Entrar
-                    </Button>
-                  </SignInButton>
-                  <Button
-                    onClick={() => router.push('/auth/sign-up')}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                  >
-                    Começar Grátis
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+                </SignInButton>
+                <Button
+                  onClick={() => router.push('/auth/sign-up')}
+                  className="btn-primary"
+                >
+                  Começar Grátis
+                </Button>
+              </>
+            )}
+          </>
+        }
+      />
 
       {/* Hero Section */}
       <main className="relative z-10">
@@ -113,10 +74,10 @@ export default function HomePage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full px-4 py-2 mb-8"
+              className="badge-success inline-flex items-center gap-2 rounded-full px-4 py-2 mb-8"
             >
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span className="text-purple-200 text-sm font-medium">
+              <Star className="w-4 h-4" />
+              <span className="text-sm font-medium">
                 +10.000 análises realizadas
               </span>
             </motion.div>
@@ -130,7 +91,7 @@ export default function HomePage() {
             >
               Descubra quem
               <br />
-              <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+              <span className="text-gradient">
                 não te segue de volta
               </span>
             </motion.h1>
@@ -156,7 +117,7 @@ export default function HomePage() {
               <Button
                 onClick={() => router.push('/tutorial')}
                 size="lg"
-                className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 py-6 text-lg shadow-xl shadow-purple-500/25"
+                className="w-full sm:w-auto btn-primary px-8 py-6 text-lg"
               >
                 Começar Análise Grátis
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -164,8 +125,7 @@ export default function HomePage() {
               <Button
                 onClick={() => router.push('/pricing')}
                 size="lg"
-                variant="outline"
-                className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 px-8 py-6 text-lg"
+                className="w-full sm:w-auto btn-secondary px-8 py-6 text-lg"
               >
                 Ver Planos
               </Button>
@@ -205,7 +165,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Tudo que você precisa para
               <br />
-              <span className="text-purple-400">gerenciar seus seguidores</span>
+              <span className="text-gradient">gerenciar seus seguidores</span>
             </h2>
           </motion.div>
 
@@ -242,14 +202,14 @@ export default function HomePage() {
 
         {/* Stats Section */}
         <section className="container mx-auto px-4 py-20">
-          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-white/10 rounded-3xl p-8 md:p-12">
+          <Card className="glass-card p-8 md:p-12">
             <div className="grid md:grid-cols-4 gap-8 text-center">
               <StatItem number="10K+" label="Análises Realizadas" />
               <StatItem number="98%" label="Taxa de Satisfação" />
               <StatItem number="12+" label="Tipos de Arquivos" />
               <StatItem number="100%" label="Privacidade" />
             </div>
-          </div>
+          </Card>
         </section>
 
         {/* Pricing CTA Section */}
@@ -260,9 +220,9 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center"
           >
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-6">
-              <Crown className="w-4 h-4 text-amber-400" />
-              <span className="text-amber-200 text-sm font-medium">
+            <div className="badge-premium inline-flex items-center gap-2 rounded-full px-4 py-2 mb-6">
+              <Crown className="w-4 h-4" />
+              <span className="text-sm font-medium">
                 Desbloqueie recursos premium
               </span>
             </div>
@@ -278,7 +238,7 @@ export default function HomePage() {
               <Button
                 onClick={() => router.push('/pricing')}
                 size="lg"
-                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold px-8 py-6"
+                className="btn-primary px-8 py-6"
               >
                 Ver Planos e Preços
                 <ArrowRight className="w-5 h-5 ml-2" />
@@ -326,7 +286,7 @@ function FeatureCard({
       viewport={{ once: true }}
       transition={{ delay }}
     >
-      <Card className="group relative bg-white/5 border-white/10 backdrop-blur-xl p-6 hover:bg-white/10 transition-all duration-300 hover:border-purple-500/50 h-full">
+      <Card className="glass-card group p-6 hover:border-purple-500/50 transition-all duration-300 h-full">
         <div
           className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}
         >
@@ -355,7 +315,7 @@ function StatItem({ number, label }: { number: string; label: string }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
     >
-      <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+      <div className="text-4xl md:text-5xl font-bold text-gradient mb-2">
         {number}
       </div>
       <div className="text-slate-400">{label}</div>

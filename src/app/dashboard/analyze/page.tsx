@@ -56,8 +56,9 @@ export default function DashboardAnalyzePageWrapper() {
 // Loading screen
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
-      <div className="text-center">
+    <div className="min-h-screen app-bg-animated flex items-center justify-center">
+      <div className="bg-decorations" />
+      <div className="text-center relative z-10">
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
@@ -97,7 +98,6 @@ function DashboardAnalyzePage() {
   const [mutualItemsToShow, setMutualItemsToShow] = useState(INITIAL_ITEMS_TO_SHOW);
   const [notFollowedItemsToShow, setNotFollowedItemsToShow] = useState(INITIAL_ITEMS_TO_SHOW);
 
-  // Check for success redirect from Stripe
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       toast.success('🎉 Assinatura ativada com sucesso!', { duration: 5000 });
@@ -117,7 +117,6 @@ function DashboardAnalyzePage() {
         setAnalysis(analysisData);
         setIsLoading(false);
 
-        // Compare with previous analysis for block detection (Pro feature)
         if (canUseFeature('blockDetector')) {
           const comparison = HistoryManager.compareWithPrevious(analysisData);
           if (comparison && comparison.changes.possibleBlocks.length > 0) {
@@ -174,7 +173,6 @@ function DashboardAnalyzePage() {
       setShowUpgradePrompt(true);
       return;
     }
-    // TODO: Implement PDF export
     toast.success('Exportando PDF...');
   };
 
@@ -227,25 +225,18 @@ Faça sua análise em: www.followerscan.com`;
   };
 
   if (isLoading || subscriptionLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-            className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <p className="text-white text-lg">Carregando análise...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!analysis) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex flex-col">
-        <DashboardHeader />
-        <main className="container mx-auto px-4 py-16 flex-1">
+      <div className="min-h-screen app-bg-animated flex flex-col">
+        <div className="bg-decorations" />
+        <div className="bg-grid" />
+        
+        <Header showNav={true} />
+        
+        <main className="container mx-auto px-4 py-16 flex-1 relative z-10">
           <div className="text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -265,7 +256,7 @@ Faça sua análise em: www.followerscan.com`;
             </motion.div>
             <Button
               onClick={handleNewAnalysis}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              className="btn-primary"
               size="lg"
             >
               <Upload className="w-5 h-5 mr-2" />
@@ -279,29 +270,35 @@ Faça sua análise em: www.followerscan.com`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 flex flex-col">
-      <DashboardHeader
+    <div className="min-h-screen app-bg-animated flex flex-col">
+      {/* Background Decorations */}
+      <div className="bg-decorations" />
+      <div className="bg-grid" />
+
+      <Header
         subtitle={`${analysis.stats.notFollowingBackCount} não te seguem de volta`}
+        showNav={true}
         rightContent={
           <div className="flex items-center gap-2">
             <UsageBadge />
-            <Button variant="ghost" onClick={handleShare} className="text-slate-300 hover:text-white">
-              <Share2 className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Compartilhar</span>
+            <Button variant="ghost" onClick={handleShare} className="btn-ghost hidden md:flex">
+              <Share2 className="w-4 h-4 mr-2" />
+              Compartilhar
             </Button>
-            <Button variant="ghost" onClick={clearAnalysis} className="text-slate-300 hover:text-white">
-              <Trash2 className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Limpar</span>
+            <Button variant="ghost" onClick={clearAnalysis} className="btn-ghost hidden md:flex">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Limpar
             </Button>
-            <Button onClick={handleNewAnalysis} className="bg-purple-500 hover:bg-purple-600">
+            <Button onClick={handleNewAnalysis} className="btn-primary">
               <RefreshCw className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Nova</span>
             </Button>
+            {user && <UserButton afterSignOutUrl="/" />}
           </div>
         }
       />
 
-      <main className="container mx-auto px-4 py-8 flex-1">
+      <main className="container mx-auto px-4 py-8 flex-1 relative z-10">
         {/* Main Alert */}
         {analysis.stats.notFollowingBackCount > 0 && (
           <motion.div
@@ -309,20 +306,18 @@ Faça sua análise em: www.followerscan.com`;
             animate={{ opacity: 1, y: 0 }}
             className="mb-6"
           >
-            <Card className="border-red-500/50 bg-red-500/10 backdrop-blur-xl">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <AlertTriangle className="w-12 h-12 text-red-400 flex-shrink-0" />
-                  <div>
-                    <h3 className="text-xl font-bold text-red-300">
-                      {analysis.stats.notFollowingBackCount} pessoas não te seguem de volta!
-                    </h3>
-                    <p className="text-red-200/80">
-                      Você segue essas pessoas mas elas não te seguem.
-                    </p>
-                  </div>
+            <Card className="alert-card-danger p-6">
+              <div className="flex items-center gap-4">
+                <AlertTriangle className="w-12 h-12 text-red-400 flex-shrink-0" />
+                <div>
+                  <h3 className="text-xl font-bold text-red-300">
+                    {analysis.stats.notFollowingBackCount} pessoas não te seguem de volta!
+                  </h3>
+                  <p className="text-red-200/80">
+                    Você segue essas pessoas mas elas não te seguem.
+                  </p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </motion.div>
         )}
@@ -337,7 +332,7 @@ Faça sua análise em: www.followerscan.com`;
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-6"
               >
-                <Card className="border-yellow-500/50 bg-yellow-500/10 backdrop-blur-xl relative overflow-hidden">
+                <Card className="alert-card-warning relative overflow-hidden">
                   <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex items-center justify-center">
                     <div className="text-center">
                       <Lock className="w-8 h-8 text-purple-400 mx-auto mb-2" />
@@ -346,7 +341,7 @@ Faça sua análise em: www.followerscan.com`;
                       <Button
                         size="sm"
                         onClick={() => router.push('/pricing')}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500"
+                        className="btn-primary"
                       >
                         <Zap className="w-4 h-4 mr-2" />
                         Desbloquear
@@ -377,20 +372,18 @@ Faça sua análise em: www.followerscan.com`;
               animate={{ opacity: 1, y: 0 }}
               className="mb-6"
             >
-              <Card className="border-yellow-500/50 bg-yellow-500/10 backdrop-blur-xl">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <Ban className="w-12 h-12 text-yellow-400 flex-shrink-0" />
-                    <div>
-                      <h3 className="text-xl font-bold text-yellow-300">
-                        {analysis.relationships.suspicious.length} possíveis bloqueios detectados
-                      </h3>
-                      <p className="text-yellow-200/80">
-                        Esses perfis sumiram sem aparecer nos unfollows recentes.
-                      </p>
-                    </div>
+              <Card className="alert-card-warning p-6">
+                <div className="flex items-center gap-4">
+                  <Ban className="w-12 h-12 text-yellow-400 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-xl font-bold text-yellow-300">
+                      {analysis.relationships.suspicious.length} possíveis bloqueios detectados
+                    </h3>
+                    <p className="text-yellow-200/80">
+                      Esses perfis sumiram sem aparecer nos unfollows recentes.
+                    </p>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             </motion.div>
           )}
@@ -432,7 +425,7 @@ Faça sua análise em: www.followerscan.com`;
         </div>
 
         {/* Analysis Tabs */}
-        <Card className="bg-white/5 border-white/10 backdrop-blur-xl">
+        <Card className="glass-card">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-5 bg-white/5">
               <TabsTrigger value="not-following-back" className="text-xs md:text-sm data-[state=active]:bg-red-500/20">
@@ -474,8 +467,7 @@ Faça sua análise em: www.followerscan.com`;
                     <Button
                       onClick={() => exportToCSV(analysis.relationships.notFollowingBack, 'nao_te_seguem.csv')}
                       size="sm"
-                      variant="outline"
-                      className="border-white/20 text-slate-300"
+                      className="btn-secondary"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       CSV
@@ -483,8 +475,7 @@ Faça sua análise em: www.followerscan.com`;
                     <Button
                       onClick={handleExportPDF}
                       size="sm"
-                      variant="outline"
-                      className="border-white/20 text-slate-300"
+                      className="btn-secondary"
                     >
                       {!canUseFeature('exportPdf') && <Lock className="w-3 h-3 mr-1" />}
                       PDF
@@ -504,8 +495,7 @@ Faça sua análise em: www.followerscan.com`;
                   <div className="flex justify-center mt-6">
                     <Button
                       onClick={() => handleShowMore('notFollowing')}
-                      variant="outline"
-                      className="border-white/20 text-slate-300"
+                      className="btn-secondary"
                     >
                       <ChevronDown className="w-4 h-4 mr-2" />
                       Mostrar mais {ITEMS_INCREMENT}
@@ -563,8 +553,7 @@ Faça sua análise em: www.followerscan.com`;
                   <div className="flex justify-center mt-6">
                     <Button
                       onClick={() => handleShowMore('mutual')}
-                      variant="outline"
-                      className="border-white/20 text-slate-300"
+                      className="btn-secondary"
                     >
                       <ChevronDown className="w-4 h-4 mr-2" />
                       Mostrar mais
@@ -624,50 +613,12 @@ Faça sua análise em: www.followerscan.com`;
 
       <Footer />
 
-      {/* Upgrade Prompt Modal */}
       <UpgradePrompt
         isOpen={showUpgradePrompt}
         reason={upgradeReason}
         onClose={() => setShowUpgradePrompt(false)}
       />
     </div>
-  );
-}
-
-// Dashboard Header Component
-function DashboardHeader({
-  subtitle,
-  rightContent,
-}: {
-  subtitle?: string;
-  rightContent?: React.ReactNode;
-}) {
-  const router = useRouter();
-  const { user } = useUser();
-
-  return (
-    <header className="border-b border-white/10 backdrop-blur-xl bg-slate-950/50 sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div
-              className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center cursor-pointer"
-              onClick={() => router.push('/')}
-            >
-              <Users className="text-white w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-white font-bold text-xl">FollowerScan</h1>
-              {subtitle && <p className="text-red-400 text-xs">{subtitle}</p>}
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {rightContent}
-            {user && <UserButton afterSignOutUrl="/" />}
-          </div>
-        </div>
-      </div>
-    </header>
   );
 }
 
@@ -695,7 +646,7 @@ function StatCard({
   return (
     <Card
       className={`border backdrop-blur-xl ${
-        highlight ? colorClasses[color] : 'bg-white/5 border-white/10'
+        highlight ? `solid-card ${colorClasses[color]}` : 'solid-card'
       }`}
     >
       <CardContent className="pt-6 text-center">

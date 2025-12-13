@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, SignInButton } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Check,
   X,
@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Header } from '@/components/ui/header';
 import { Footer } from '@/components/ui/footer';
 import {
   PRICING_TIERS,
@@ -67,48 +68,33 @@ export default function PricingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-screen app-bg-animated">
+      {/* Background Decorations */}
+      <div className="bg-decorations" />
+      <div className="bg-grid" />
 
       {/* Header */}
-      <header className="relative z-10 border-b border-white/10 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div
-              className="flex items-center space-x-3 cursor-pointer"
-              onClick={() => router.push('/')}
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
-                <Users className="text-white w-5 h-5" />
-              </div>
-              <div>
-                <h1 className="text-white font-bold text-xl tracking-tight">FollowerScan</h1>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {user ? (
-                <Button
-                  onClick={() => router.push('/dashboard/analyze')}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
-                >
-                  Dashboard
+      <Header
+        showNav={true}
+        rightContent={
+          <>
+            {user ? (
+              <Button
+                onClick={() => router.push('/dashboard/analyze')}
+                className="btn-secondary"
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <SignInButton mode="modal">
+                <Button className="btn-secondary">
+                  Entrar
                 </Button>
-              ) : (
-                <SignInButton mode="modal">
-                  <Button className="bg-white/10 hover:bg-white/20 text-white border border-white/20">
-                    Entrar
-                  </Button>
-                </SignInButton>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+              </SignInButton>
+            )}
+          </>
+        }
+      />
 
       {/* Main Content */}
       <main className="relative z-10 container mx-auto px-4 py-16">
@@ -118,9 +104,9 @@ export default function PricingPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full px-4 py-2 mb-6">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-purple-200 text-sm font-medium">
+          <div className="badge-success inline-flex items-center gap-2 rounded-full px-4 py-2 mb-6">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-medium">
               Economize {yearlyDiscount}% no plano anual
             </span>
           </div>
@@ -128,7 +114,7 @@ export default function PricingPage() {
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight">
             Escolha o plano ideal
             <br />
-            <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="text-gradient">
               para você
             </span>
           </h1>
@@ -138,12 +124,12 @@ export default function PricingPage() {
           </p>
 
           {/* Billing Toggle */}
-          <div className="inline-flex items-center gap-4 bg-white/5 rounded-full p-1.5 border border-white/10">
+          <div className="inline-flex items-center gap-4 glass-card rounded-full p-1.5">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                 billingPeriod === 'monthly'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                  ? 'btn-primary'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -153,12 +139,12 @@ export default function PricingPage() {
               onClick={() => setBillingPeriod('yearly')}
               className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
                 billingPeriod === 'yearly'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
+                  ? 'btn-primary'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               Anual
-              <span className="bg-green-500/20 text-green-400 text-xs px-2 py-0.5 rounded-full">
+              <span className="badge-success text-xs px-2 py-0.5 rounded-full">
                 -{yearlyDiscount}%
               </span>
             </button>
@@ -190,7 +176,7 @@ export default function PricingPage() {
             Compare todos os recursos
           </h2>
           
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+          <div className="glass-card rounded-2xl overflow-hidden">
             <div className="grid grid-cols-4 gap-4 p-4 border-b border-white/10 bg-white/5">
               <div className="text-slate-400 font-medium">Recurso</div>
               {PRICING_TIERS.map(tier => (
@@ -200,7 +186,6 @@ export default function PricingPage() {
               ))}
             </div>
             
-            {/* Analyses */}
             <FeatureRow
               name="Análises por mês"
               values={PRICING_TIERS.map(t =>
@@ -208,7 +193,6 @@ export default function PricingPage() {
               )}
             />
             
-            {/* History */}
             <FeatureRow
               name="Histórico de análises"
               values={PRICING_TIERS.map(t =>
@@ -216,13 +200,11 @@ export default function PricingPage() {
               )}
             />
             
-            {/* Accounts */}
             <FeatureRow
               name="Contas Instagram"
               values={PRICING_TIERS.map(t => t.limits.maxAccounts.toString())}
             />
             
-            {/* Features */}
             {(Object.keys(FEATURE_DESCRIPTIONS) as Array<keyof TierLimits['features']>).map(
               feature => (
                 <FeatureRow
@@ -311,14 +293,14 @@ function PricingCard({
       transition={{ delay }}
       className={`relative rounded-2xl ${
         tier.popular
-          ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50'
-          : 'bg-white/5 border border-white/10'
-      } backdrop-blur-xl p-6 flex flex-col`}
+          ? 'glass-card border-2 border-purple-500/50'
+          : 'glass-card'
+      } p-6 flex flex-col`}
     >
       {/* Popular Badge */}
       {tier.popular && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-semibold px-4 py-1 rounded-full shadow-lg shadow-purple-500/25">
+          <div className="badge-premium px-4 py-1 rounded-full shadow-lg shadow-purple-500/25">
             {tier.badge}
           </div>
         </div>
@@ -403,10 +385,10 @@ function PricingCard({
         disabled={isCurrentPlan}
         className={`w-full py-6 text-base font-semibold ${
           tier.popular
-            ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/25'
+            ? 'btn-primary'
             : tier.id === 'business'
             ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
-            : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+            : 'btn-secondary'
         }`}
       >
         {isCurrentPlan ? (

@@ -160,7 +160,6 @@ export default function UploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const router = useRouter();
 
-  // Calcular progresso
   const requiredFiles = FILE_TYPES.filter(f => f.required);
   const uploadedRequired = requiredFiles.filter(f => uploadedFiles.has(f.key));
   const progress = (uploadedFiles.size / FILE_TYPES.length) * 100;
@@ -177,19 +176,15 @@ export default function UploadPage() {
       const newFiles = new Map(uploadedFiles);
       const filesToProcess: { name: string; content: string }[] = [];
 
-      // Procurar recursivamente por arquivos JSON em qualquer pasta
       for (const [path, zipEntry] of Object.entries(zipContent.files)) {
         if (zipEntry.dir) continue;
 
-        // Pegar apenas o nome do arquivo, ignorando o caminho
         const fileName = path.split('/').pop() || '';
 
         if (fileName.toLowerCase().endsWith('.json')) {
           try {
             const content = await zipEntry.async('string');
             filesToProcess.push({ name: fileName, content });
-
-            // Log para debug
             console.log(`Arquivo encontrado: ${fileName}`);
           } catch (err) {
             console.error(`Erro ao ler ${fileName}:`, err);
@@ -197,11 +192,9 @@ export default function UploadPage() {
         }
       }
 
-      // Processar todos os arquivos encontrados
       const processedData =
         InstagramDataParser.parseMultipleFiles(filesToProcess);
 
-      // Adicionar arquivos processados ao mapa
       let filesFound = 0;
       let notFollowingBackCount = 0;
 
@@ -227,13 +220,12 @@ export default function UploadPage() {
       } else {
         toast.success(`🎉 ${filesFound} arquivos extraídos com sucesso!`);
 
-        // Se encontrou os arquivos principais, mostrar estatística rápida
         if (newFiles.has('followers') && newFiles.has('following')) {
           const followersSet = new Set(
             newFiles.get('followers')?.map((u: any) => u.username)
           );
           const following = newFiles.get('following') || [];
-          notFollowingBackCount = following.filter((u: any) => !followersSet.has(u.username))
+          notFollowingBackCount = following.filter((u: any) => !followersSet.has(u.username)).length;
 
           if (notFollowingBackCount > 0) {
             toast.error(
@@ -323,7 +315,6 @@ export default function UploadPage() {
     setIsProcessing(true);
 
     try {
-      // Construir objeto InstagramDataComplete
       const completeData: InstagramDataComplete = {
         followers: uploadedFiles.get('followers') || [],
         following: uploadedFiles.get('following') || [],
@@ -340,17 +331,12 @@ export default function UploadPage() {
         removedSuggestions: uploadedFiles.get('removedSuggestions') || [],
       };
 
-      // Gerar análise completa
       const analysis = InstagramAnalyzer.analyze(completeData);
-
-      // Salvar no histórico
       const analysisId = HistoryManager.saveAnalysis(analysis);
 
-      // Salvar análise atual no localStorage para a página de análise
       localStorage.setItem('current-analysis', JSON.stringify(analysis));
       localStorage.setItem('current-analysis-id', analysisId);
 
-      // Alerta com estatística principal
       const notFollowingBackCount = analysis.stats.notFollowingBackCount;
       if (notFollowingBackCount > 0) {
         toast.error(
@@ -377,14 +363,19 @@ export default function UploadPage() {
   };
 
   return (
-    <div className='min-h-screen gradient-bg flex flex-col'>
+    <div className='min-h-screen app-bg-animated flex flex-col'>
+      {/* Background Decorations */}
+      <div className='bg-decorations' />
+      <div className='bg-grid' />
+
       <Header
         subtitle='Upload de Dados do Instagram'
+        showNav={true}
         rightContent={
           <Button
             variant='ghost'
             onClick={() => router.push('/tutorial')}
-            className='btn-header'
+            className='btn-secondary'
           >
             <ArrowLeft className='w-4 h-4 mr-2' />
             Tutorial
@@ -392,13 +383,13 @@ export default function UploadPage() {
         }
       />
 
-      <main className='container mx-auto px-4 py-8 flex-1'>
+      <main className='container mx-auto px-4 py-8 flex-1 relative z-10'>
         {/* Hero Section */}
         <div className='text-center mb-8'>
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className='text-white text-3xl lg:text-4xl font-bold mb-4 drop-shadow-lg'
+            className='text-white text-3xl lg:text-4xl font-bold mb-4'
           >
             🔍 Descubra Quem Não Te Segue de Volta
           </motion.h2>
@@ -406,7 +397,7 @@ export default function UploadPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className='text-white text-lg opacity-90 max-w-2xl mx-auto drop-shadow'
+            className='text-slate-300 text-lg max-w-2xl mx-auto'
           >
             Análise completa com <strong>detector de bloqueios</strong>,
             unfollowers e estatísticas detalhadas do seu perfil
@@ -415,19 +406,19 @@ export default function UploadPage() {
 
         {/* Progress Bar */}
         <div className='max-w-4xl mx-auto mb-8'>
-          <Card className='card-instagram'>
+          <Card className='glass-card'>
             <CardContent className='pt-6'>
               <div className='flex justify-between items-center mb-2'>
-                <span className='text-sm font-medium'>
+                <span className='text-sm font-medium text-white'>
                   {uploadedFiles.size} de {FILE_TYPES.length} arquivos
                 </span>
-                <span className='text-sm font-medium'>
+                <span className='text-sm font-medium text-white'>
                   {Math.round(progress)}%
                 </span>
               </div>
               <Progress value={progress} className='h-2' />
               {!canAnalyze && uploadedFiles.size > 0 && (
-                <p className='text-xs text-amber-600 mt-2'>
+                <p className='text-xs text-amber-400 mt-2'>
                   ⚠️ Upload os arquivos obrigatórios (Seguidores e Seguindo)
                   para continuar
                 </p>
@@ -438,9 +429,9 @@ export default function UploadPage() {
 
         <div className='max-w-6xl mx-auto'>
           {/* Upload Area */}
-          <Card className='mb-8 card-instagram'>
+          <Card className='mb-8 glass-card'>
             <CardHeader>
-              <CardTitle className='text-center'>
+              <CardTitle className='text-center text-white'>
                 <Upload className='w-8 h-8 mx-auto mb-2' />
                 Arraste o ZIP do Instagram aqui
               </CardTitle>
@@ -452,18 +443,18 @@ export default function UploadPage() {
                   border-2 border-dashed rounded-lg p-8 text-center transition-all cursor-pointer
                   ${
                     isDragActive
-                      ? 'border-purple-500 bg-purple-50'
+                      ? 'border-purple-500 bg-purple-500/10'
                       : isExtracting
-                      ? 'border-purple-500 bg-purple-50 animate-pulse'
-                      : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                      ? 'border-purple-500 bg-purple-500/10 animate-pulse'
+                      : 'border-slate-600 hover:border-purple-500 hover:bg-purple-500/5'
                   }
                 `}
               >
                 <input {...getInputProps()} />
                 {isExtracting ? (
                   <>
-                    <Loader2 className='w-16 h-16 mx-auto mb-4 text-purple-500 animate-spin' />
-                    <p className='text-lg text-purple-600 font-medium'>
+                    <Loader2 className='w-16 h-16 mx-auto mb-4 text-purple-400 animate-spin' />
+                    <p className='text-lg text-purple-300 font-medium'>
                       Extraindo arquivos do ZIP...
                     </p>
                     {uploadProgress > 0 && (
@@ -476,14 +467,14 @@ export default function UploadPage() {
                 ) : (
                   <>
                     <FileArchive className='w-16 h-16 mx-auto mb-4 text-purple-400' />
-                    <p className='text-lg font-medium mb-2'>
+                    <p className='text-lg font-medium mb-2 text-white'>
                       Arraste o arquivo ZIP completo do Instagram
                     </p>
-                    <p className='text-sm text-gray-600'>
+                    <p className='text-sm text-slate-400'>
                       ou clique para selecionar arquivos JSON individuais
                     </p>
-                    <div className='mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3 max-w-md mx-auto'>
-                      <p className='text-xs text-yellow-800'>
+                    <div className='mt-4 alert-card-warning rounded-lg p-3 max-w-md mx-auto'>
+                      <p className='text-xs text-amber-200'>
                         <strong>📌 Dica:</strong> O ZIP do Instagram contém uma
                         pasta com todos os JSONs. Nosso sistema processa
                         automaticamente!
@@ -513,15 +504,13 @@ export default function UploadPage() {
                   }`}
                 >
                   <Card
-                    className={`
-                    ${
+                    className={`solid-card ${
                       hasFile
-                        ? 'border-green-200 bg-green-50'
+                        ? 'border-green-500/50 bg-green-500/10'
                         : fileType.required
-                        ? 'border-amber-200 bg-amber-50'
-                        : 'border-gray-200'
-                    }
-                  `}
+                        ? 'border-amber-500/50 bg-amber-500/10'
+                        : 'border-slate-700'
+                    }`}
                   >
                     <CardContent className='pt-6'>
                       <div className='flex items-center justify-between mb-3'>
@@ -531,25 +520,25 @@ export default function UploadPage() {
                             variant='ghost'
                             size='sm'
                             onClick={() => removeFile(fileType.key)}
-                            className='h-6 w-6 p-0 hover:bg-red-100'
+                            className='h-6 w-6 p-0 hover:bg-red-500/20'
                           >
-                            <X className='w-4 h-4 text-red-500' />
+                            <X className='w-4 h-4 text-red-400' />
                           </Button>
                         )}
                       </div>
-                      <h3 className='font-medium text-sm mb-1'>
+                      <h3 className='font-medium text-sm mb-1 text-white'>
                         {fileType.name}
                       </h3>
                       {hasFile ? (
                         <div>
-                          <p className='text-xs text-green-600 font-semibold'>
+                          <p className='text-xs text-green-400 font-semibold'>
                             ✅ {Array.isArray(fileData) ? fileData.length : 0}{' '}
                             registros
                           </p>
                         </div>
                       ) : (
                         <div>
-                          <p className='text-xs text-gray-500'>
+                          <p className='text-xs text-slate-500'>
                             {fileType.fileName}
                           </p>
                           {fileType.required && (
@@ -576,32 +565,30 @@ export default function UploadPage() {
               animate={{ opacity: 1, y: 0 }}
               className='mb-8'
             >
-              <Card className='border-red-200 bg-gradient-to-r from-red-50 to-pink-50'>
-                <CardContent className='pt-6'>
-                  <div className='flex items-center gap-3'>
-                    <AlertTriangle className='w-8 h-8 text-red-500 flex-shrink-0' />
-                    <div>
-                      <h3 className='text-lg font-bold text-red-800'>
-                        Análise Rápida
-                      </h3>
-                      <p className='text-red-700'>
-                        {(() => {
-                          const followersSet = new Set(
-                            uploadedFiles
-                              .get('followers')
-                              ?.map((u: any) => u.username) || []
-                          );
-                          const following =
-                            uploadedFiles.get('following') || [];
-                          const notFollowingBack = following.filter((u: any) => !followersSet.has(u.username));
-                          return notFollowingBack.length > 0
-                            ? `${notFollowingBack.length} pessoas não te seguem de volta! Clique em analisar para ver quem são.`
-                            : 'Todos que você segue também te seguem de volta! 🎉';
-                        })()}
-                      </p>
-                    </div>
+              <Card className='alert-card-danger p-6'>
+                <div className='flex items-center gap-3'>
+                  <AlertTriangle className='w-8 h-8 text-red-400 flex-shrink-0' />
+                  <div>
+                    <h3 className='text-lg font-bold text-red-300'>
+                      Análise Rápida
+                    </h3>
+                    <p className='text-red-200'>
+                      {(() => {
+                        const followersSet = new Set(
+                          uploadedFiles
+                            .get('followers')
+                            ?.map((u: any) => u.username) || []
+                        );
+                        const following =
+                          uploadedFiles.get('following') || [];
+                        const notFollowingBack = following.filter((u: any) => !followersSet.has(u.username));
+                        return notFollowingBack.length > 0
+                          ? `${notFollowingBack.length} pessoas não te seguem de volta! Clique em analisar para ver quem são.`
+                          : 'Todos que você segue também te seguem de volta! 🎉';
+                      })()}
+                    </p>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             </motion.div>
           )}
@@ -615,10 +602,10 @@ export default function UploadPage() {
               className={`
                 ${
                   canAnalyze
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-                    : 'bg-gray-400'
+                    ? 'btn-primary'
+                    : 'bg-slate-600 cursor-not-allowed'
                 }
-                text-white px-8 py-6 text-lg shadow-xl
+                px-8 py-6 text-lg shadow-xl
               `}
             >
               {isProcessing ? (
@@ -642,41 +629,41 @@ export default function UploadPage() {
               animate={{ opacity: 1, y: 0 }}
               className='mt-8'
             >
-              <Card className='border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50'>
+              <Card className='glass-card border-purple-500/30'>
                 <CardHeader>
-                  <CardTitle className='text-purple-800'>
+                  <CardTitle className='text-purple-300'>
                     🎯 O que você vai descobrir:
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className='grid md:grid-cols-2 gap-4'>
                     <div className='space-y-2'>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-red-500' />
-                        <strong className='text-red-700'>
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-red-400' />
+                        <strong className='text-red-300'>
                           Quem não te segue de volta
                         </strong>
                       </p>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-orange-500' />
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-orange-400' />
                         <strong>Detector de Bloqueios:</strong> 60-90% precisão
                       </p>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-green-500' />
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-green-400' />
                         <strong>Seguidores Mútuos</strong>
                       </p>
                     </div>
                     <div className='space-y-2'>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-purple-500' />
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-purple-400' />
                         <strong>Unfollows Recentes</strong>
                       </p>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-blue-500' />
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-blue-400' />
                         <strong>Taxa de Engajamento</strong>
                       </p>
-                      <p className='text-sm flex items-center gap-2'>
-                        <CheckCircle className='w-4 h-4 text-pink-500' />
+                      <p className='text-sm flex items-center gap-2 text-slate-300'>
+                        <CheckCircle className='w-4 h-4 text-pink-400' />
                         <strong>Score Social</strong>
                       </p>
                     </div>
@@ -687,15 +674,15 @@ export default function UploadPage() {
           )}
 
           {/* Privacy Notice */}
-          <Card className='mt-8 border-green-200 bg-green-50'>
+          <Card className='mt-8 alert-card-success'>
             <CardContent className='pt-6'>
               <div className='flex items-start space-x-3'>
-                <Shield className='w-5 h-5 text-green-600 mt-0.5' />
+                <Shield className='w-5 h-5 text-green-400 mt-0.5' />
                 <div>
-                  <p className='font-medium text-green-800 mb-1'>
+                  <p className='font-medium text-green-300 mb-1'>
                     🔒 100% Privado e Seguro
                   </p>
-                  <p className='text-sm text-green-700'>
+                  <p className='text-sm text-green-200'>
                     Processamento 100% local. Nenhum dado é enviado para
                     servidores. Seus dados ficam apenas no seu navegador.
                   </p>

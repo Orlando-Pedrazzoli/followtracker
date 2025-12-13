@@ -28,6 +28,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Header } from '@/components/ui/header';
+import { Footer } from '@/components/ui/footer';
 
 const steps = [
   {
@@ -90,9 +91,14 @@ export default function TutorialPage() {
   const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
 
   return (
-    <div className='min-h-screen gradient-bg'>
+    <div className='min-h-screen app-bg-animated'>
+      {/* Background Decorations */}
+      <div className='bg-decorations' />
+      <div className='bg-grid' />
+
       <Header
         subtitle='Tutorial Completo'
+        showNav={true}
         rightContent={
           <div className='text-white text-sm hidden md:block font-medium'>
             <BookOpen className='inline w-4 h-4 mr-1' />
@@ -101,7 +107,7 @@ export default function TutorialPage() {
         }
       />
 
-      <main className='container mx-auto px-4 py-8'>
+      <main className='container mx-auto px-4 py-8 relative z-10'>
         {/* Hero Section */}
         <div className='text-center mb-12'>
           <motion.h2
@@ -115,7 +121,7 @@ export default function TutorialPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className='text-white text-lg opacity-90 max-w-2xl mx-auto'
+            className='text-slate-300 text-lg max-w-2xl mx-auto'
           >
             Siga este tutorial passo a passo para baixar seus dados de
             seguidores de forma segura e privada
@@ -126,7 +132,7 @@ export default function TutorialPage() {
         <div className='mb-12'>
           <div className='flex items-center justify-between mb-6'>
             <h3 className='text-white text-xl font-semibold'>Progresso</h3>
-            <Badge variant='secondary' className='bg-white/20 text-white'>
+            <Badge className='badge-success'>
               Passo {currentStep} de {steps.length}
             </Badge>
           </div>
@@ -141,7 +147,7 @@ export default function TutorialPage() {
                   w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm transition-all duration-300
                   ${
                     currentStep === step.id
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-110'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-110'
                       : currentStep > step.id
                       ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
                       : 'bg-white/20 text-white'
@@ -157,7 +163,7 @@ export default function TutorialPage() {
                 {index < steps.length - 1 && (
                   <div className='hidden md:block w-16 h-1 bg-white/20 mt-2'>
                     <div
-                      className='h-full bg-gradient-to-r from-white to-blue-200 transition-all duration-700'
+                      className='h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-700'
                       style={{ width: currentStep > step.id ? '100%' : '0%' }}
                     />
                   </div>
@@ -202,7 +208,7 @@ export default function TutorialPage() {
             variant='ghost'
             onClick={handlePrev}
             disabled={currentStep === 1}
-            className='text-white hover:bg-white/20'
+            className='btn-ghost'
           >
             <ArrowLeft className='w-4 h-4 mr-2' />
             Anterior
@@ -210,7 +216,7 @@ export default function TutorialPage() {
 
           <div className='text-center text-white'>
             <p className='font-medium'>{steps[currentStep - 1].title}</p>
-            <p className='text-sm opacity-70'>
+            <p className='text-sm text-slate-400'>
               Passo {currentStep} de {steps.length}
             </p>
           </div>
@@ -218,7 +224,7 @@ export default function TutorialPage() {
           {currentStep === 5 ? (
             <Button
               onClick={handleFinish}
-              className='bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600'
+              className='btn-primary'
             >
               Começar Análise
               <Upload className='w-4 h-4 ml-2' />
@@ -226,7 +232,7 @@ export default function TutorialPage() {
           ) : (
             <Button
               onClick={handleNext}
-              className='bg-blue-500 hover:bg-blue-600'
+              className='btn-primary'
             >
               Próximo
               <ArrowRight className='w-4 h-4 ml-2' />
@@ -234,17 +240,19 @@ export default function TutorialPage() {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
 
-// Step Components (mantidos os mesmos)
+// Step Components
 function StepOne() {
   const step = steps[0];
   const Icon = step.icon;
 
   return (
-    <Card className='p-8 shadow-2xl'>
+    <Card className='glass-card p-8 shadow-2xl'>
       <div className='flex items-center mb-6'>
         <div
           className={`w-14 h-14 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mr-4 shadow-lg`}
@@ -252,8 +260,8 @@ function StepOne() {
           <Icon className='text-white w-7 h-7' />
         </div>
         <div>
-          <h3 className='text-2xl font-bold text-gray-800'>{step.title}</h3>
-          <p className='text-gray-600 text-sm'>{step.subtitle}</p>
+          <h3 className='text-2xl font-bold text-white'>{step.title}</h3>
+          <p className='text-slate-400 text-sm'>{step.subtitle}</p>
         </div>
       </div>
 
@@ -281,14 +289,14 @@ function StepOne() {
         />
       </div>
 
-      <div className='bg-blue-50 border border-blue-200 rounded-xl p-4'>
+      <div className='alert-card-info rounded-xl p-4'>
         <div className='flex items-start space-x-3'>
-          <Info className='text-blue-500 w-5 h-5 flex-shrink-0 mt-0.5' />
+          <Info className='text-blue-400 w-5 h-5 flex-shrink-0 mt-0.5' />
           <div>
-            <p className='text-blue-800 font-medium text-sm'>
+            <p className='text-blue-300 font-medium text-sm'>
               💡 Dica para navegador
             </p>
-            <p className='text-blue-700 text-sm mt-1'>
+            <p className='text-blue-200 text-sm mt-1'>
               No navegador web, clique no seu avatar no canto superior direito e
               selecione "Configurações".
             </p>
@@ -304,7 +312,7 @@ function StepTwo() {
   const Icon = step.icon;
 
   return (
-    <Card className='p-8 shadow-2xl'>
+    <Card className='glass-card p-8 shadow-2xl'>
       <div className='flex items-center mb-6'>
         <div
           className={`w-14 h-14 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mr-4 shadow-lg`}
@@ -312,8 +320,8 @@ function StepTwo() {
           <Icon className='text-white w-7 h-7' />
         </div>
         <div>
-          <h3 className='text-2xl font-bold text-gray-800'>{step.title}</h3>
-          <p className='text-gray-600 text-sm'>{step.subtitle}</p>
+          <h3 className='text-2xl font-bold text-white'>{step.title}</h3>
+          <p className='text-slate-400 text-sm'>{step.subtitle}</p>
         </div>
       </div>
 
@@ -336,14 +344,14 @@ function StepTwo() {
         />
       </div>
 
-      <div className='bg-amber-50 border border-amber-200 rounded-xl p-4'>
+      <div className='alert-card-warning rounded-xl p-4'>
         <div className='flex items-start space-x-3'>
-          <AlertTriangle className='text-amber-500 w-5 h-5 flex-shrink-0 mt-0.5' />
+          <AlertTriangle className='text-amber-400 w-5 h-5 flex-shrink-0 mt-0.5' />
           <div>
-            <p className='text-amber-800 font-medium text-sm'>
+            <p className='text-amber-300 font-medium text-sm'>
               ⚠️ Localização pode variar
             </p>
-            <p className='text-amber-700 text-sm mt-1'>
+            <p className='text-amber-200 text-sm mt-1'>
               Dependendo da versão do app, essa opção pode estar em locais
               ligeiramente diferentes no menu.
             </p>
@@ -359,7 +367,7 @@ function StepThree() {
   const Icon = step.icon;
 
   return (
-    <Card className='p-8 shadow-2xl'>
+    <Card className='glass-card p-8 shadow-2xl'>
       <div className='flex items-center mb-6'>
         <div
           className={`w-14 h-14 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mr-4 shadow-lg`}
@@ -367,8 +375,8 @@ function StepThree() {
           <Icon className='text-white w-7 h-7' />
         </div>
         <div>
-          <h3 className='text-2xl font-bold text-gray-800'>{step.title}</h3>
-          <p className='text-gray-600 text-sm'>{step.subtitle}</p>
+          <h3 className='text-2xl font-bold text-white'>{step.title}</h3>
+          <p className='text-slate-400 text-sm'>{step.subtitle}</p>
         </div>
       </div>
 
@@ -379,22 +387,22 @@ function StepThree() {
           description='Se você tem múltiplas contas, escolha a desejada'
         />
 
-        <div className='p-4 bg-gray-50 rounded-lg'>
-          <p className='text-gray-800 font-medium mb-3'>
+        <div className='p-4 bg-slate-800/50 rounded-lg border border-slate-700'>
+          <p className='text-white font-medium mb-3'>
             Em "Selecionar informações", marque:
           </p>
           <div className='space-y-3'>
-            <div className='flex items-center space-x-3 p-3 bg-green-100 rounded-lg border border-green-200'>
+            <div className='flex items-center space-x-3 p-3 alert-card-success rounded-lg'>
               <div className='w-5 h-5 bg-green-500 rounded flex items-center justify-center'>
                 <Check className='w-3 h-3 text-white' />
               </div>
-              <span className='text-gray-800 font-semibold'>
+              <span className='text-green-200 font-semibold'>
                 ✅ Seguidores e seguindo
               </span>
             </div>
-            <div className='flex items-center space-x-3 p-3 bg-gray-100 rounded-lg'>
-              <div className='w-5 h-5 border-2 border-gray-400 rounded'></div>
-              <span className='text-gray-600'>Conexões (opcional)</span>
+            <div className='flex items-center space-x-3 p-3 bg-slate-700/30 rounded-lg'>
+              <div className='w-5 h-5 border-2 border-slate-500 rounded'></div>
+              <span className='text-slate-400'>Conexões (opcional)</span>
             </div>
           </div>
         </div>
@@ -407,14 +415,14 @@ function StepThree() {
         />
       </div>
 
-      <div className='bg-green-50 border border-green-200 rounded-xl p-4'>
+      <div className='alert-card-success rounded-xl p-4'>
         <div className='flex items-start space-x-3'>
-          <ShieldCheck className='text-green-500 w-5 h-5 flex-shrink-0 mt-0.5' />
+          <ShieldCheck className='text-green-400 w-5 h-5 flex-shrink-0 mt-0.5' />
           <div>
-            <p className='text-green-800 font-medium text-sm'>
+            <p className='text-green-300 font-medium text-sm'>
               🔒 Privacidade garantida
             </p>
-            <p className='text-green-700 text-sm mt-1'>
+            <p className='text-green-200 text-sm mt-1'>
               Estamos interessados apenas nos dados de seguidores. Não é
               necessário marcar outras opções.
             </p>
@@ -430,7 +438,7 @@ function StepFour() {
   const Icon = step.icon;
 
   return (
-    <Card className='p-8 shadow-2xl'>
+    <Card className='glass-card p-8 shadow-2xl'>
       <div className='flex items-center mb-6'>
         <div
           className={`w-14 h-14 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mr-4 shadow-lg`}
@@ -438,8 +446,8 @@ function StepFour() {
           <Icon className='text-white w-7 h-7' />
         </div>
         <div>
-          <h3 className='text-2xl font-bold text-gray-800'>{step.title}</h3>
-          <p className='text-gray-600 text-sm'>{step.subtitle}</p>
+          <h3 className='text-2xl font-bold text-white'>{step.title}</h3>
+          <p className='text-slate-400 text-sm'>{step.subtitle}</p>
         </div>
       </div>
 
@@ -462,14 +470,14 @@ function StepFour() {
         />
       </div>
 
-      <div className='bg-orange-50 border border-orange-200 rounded-xl p-4'>
+      <div className='alert-card-warning rounded-xl p-4'>
         <div className='flex items-start space-x-3'>
-          <Clock className='text-orange-500 w-5 h-5 flex-shrink-0 mt-0.5' />
+          <Clock className='text-amber-400 w-5 h-5 flex-shrink-0 mt-0.5' />
           <div>
-            <p className='text-orange-800 font-medium text-sm'>
+            <p className='text-amber-300 font-medium text-sm'>
               ⏱️ Tempo de processamento
             </p>
-            <p className='text-orange-700 text-sm mt-1'>
+            <p className='text-amber-200 text-sm mt-1'>
               O Instagram pode levar de{' '}
               <strong>algumas horas até 14 dias</strong> para processar.
               Geralmente fica pronto em <strong>1-2 dias</strong>.
@@ -486,7 +494,7 @@ function StepFive() {
   const Icon = step.icon;
 
   return (
-    <Card className='p-8 shadow-2xl'>
+    <Card className='glass-card p-8 shadow-2xl'>
       <div className='flex items-center mb-6'>
         <div
           className={`w-14 h-14 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mr-4 shadow-lg`}
@@ -494,8 +502,8 @@ function StepFive() {
           <Icon className='text-white w-7 h-7' />
         </div>
         <div>
-          <h3 className='text-2xl font-bold text-gray-800'>{step.title}</h3>
-          <p className='text-gray-600 text-sm'>{step.subtitle}</p>
+          <h3 className='text-2xl font-bold text-white'>{step.title}</h3>
+          <p className='text-slate-400 text-sm'>{step.subtitle}</p>
         </div>
       </div>
 
@@ -523,14 +531,14 @@ function StepFive() {
         />
       </div>
 
-      <div className='bg-emerald-50 border border-emerald-200 rounded-xl p-4'>
+      <div className='alert-card-success rounded-xl p-4'>
         <div className='flex items-start space-x-3'>
-          <CheckCircle className='text-emerald-500 w-5 h-5 flex-shrink-0 mt-0.5' />
+          <CheckCircle className='text-green-400 w-5 h-5 flex-shrink-0 mt-0.5' />
           <div>
-            <p className='text-emerald-800 font-medium text-sm'>
+            <p className='text-green-300 font-medium text-sm'>
               🎉 Parabéns! Processo concluído
             </p>
-            <p className='text-emerald-700 text-sm mt-1'>
+            <p className='text-green-200 text-sm mt-1'>
               Agora você pode fazer upload desses dois arquivos JSON em nosso
               analisador para descobrir quem não está te seguindo de volta, seus
               seguidores mútuos e muito mais!
@@ -556,19 +564,19 @@ function StepItem({
   return (
     <div
       className={`flex items-start space-x-4 p-4 rounded-lg ${
-        highlight ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-gray-50'
+        highlight ? 'bg-purple-500/10 border-l-4 border-purple-500' : 'bg-slate-800/30'
       }`}
     >
       <div
         className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-          highlight ? 'bg-blue-500 animate-pulse' : 'bg-green-500'
+          highlight ? 'bg-purple-500 animate-pulse' : 'bg-green-500'
         }`}
       >
         <Icon className='w-4 h-4 text-white' />
       </div>
       <div>
-        <p className='text-gray-800 font-medium'>{title}</p>
-        <p className='text-gray-600 text-sm'>{description}</p>
+        <p className='text-white font-medium'>{title}</p>
+        <p className='text-slate-400 text-sm'>{description}</p>
       </div>
     </div>
   );
