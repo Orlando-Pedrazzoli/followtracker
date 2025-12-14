@@ -16,6 +16,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://followerscan.com'),
   title: 'FollowerScan - Gerencie seus seguidores do Instagram',
   description:
     'Analise seus seguidores do Instagram de forma privada e segura. Descubra quem não está te seguindo de volta, detecte bloqueios e obtenha insights valiosos.',
