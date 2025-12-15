@@ -2,12 +2,12 @@
   "name": "followerscan",
   "version": "0.1.0",
   "private": true,
- "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "lint": "eslint ."
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint ."
+  },
   "dependencies": {
     "@clerk/localizations": "^3.30.1",
     "@clerk/nextjs": "^6.36.2",
@@ -18,7 +18,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
-    "framer-motion": "^10.18.0",
+    "framer-motion": "^12.23.26",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.1",
     "jszip": "^3.10.1",
