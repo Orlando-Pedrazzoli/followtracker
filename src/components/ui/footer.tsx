@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Shield, Lock, Globe, Instagram, Github, Linkedin, Mail } from 'lucide-react';
+import { Shield, Lock, Globe, Instagram, Github, Linkedin, Mail, Users } from 'lucide-react';
 import Link from 'next/link';
 
 // Payment Icons as SVG components for reliability
@@ -74,13 +74,12 @@ export function Footer() {
       { label: 'Funcionalidades', href: '/#features' },
       { label: 'Preços', href: '/pricing' },
       { label: 'Tutorial', href: '/tutorial' },
-      { label: 'Dashboard', href: '/dashboard/analyze' },
+      { label: 'Ver Exemplo', href: '/sample' },
     ],
     suporte: [
-      { label: 'Central de Ajuda', href: '/help' },
       { label: 'FAQ', href: '/faq' },
+      { label: 'Como Funciona', href: '/tutorial' },
       { label: 'Contacto', href: 'mailto:suporte@followerscan.com' },
-      { label: 'Status', href: '/status' },
     ],
     legal: [
       { label: 'Privacidade', href: '/privacy' },
@@ -97,8 +96,10 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
           {/* Brand Section */}
           <div className="lg:col-span-2 space-y-4">
-            <Link href="/" className="flex items-center space-x-2 text-white">
-              <Instagram className="w-6 h-6 text-purple-400" />
+            <Link href="/" className="flex items-center space-x-2 text-white group">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Users className="w-4 h-4 text-white" />
+              </div>
               <span className="font-bold text-xl">FollowerScan</span>
             </Link>
             <p className="text-slate-400 text-sm max-w-sm">
@@ -262,7 +263,9 @@ export function FooterMinimal() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Instagram className="w-4 h-4 text-purple-400" />
+            <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded flex items-center justify-center">
+              <Users className="w-3 h-3 text-white" />
+            </div>
             <span>© {currentYear} FollowerScan</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -271,6 +274,9 @@ export function FooterMinimal() {
             </Link>
             <Link href="/terms" className="hover:text-slate-300 transition-colors">
               Termos
+            </Link>
+            <Link href="/faq" className="hover:text-slate-300 transition-colors">
+              FAQ
             </Link>
             <a
               href="https://orlandopedrazzoli.com"
