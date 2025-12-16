@@ -1,6 +1,7 @@
 'use client';
 
 import { Toaster } from 'react-hot-toast';
+import { CookieConsentBanner } from '@/components/ui/cookie-consent';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
+      <CookieConsentBanner />
     </>
   );
 }
