@@ -99,9 +99,22 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="pt-BR" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <html lang="pt-BR" className={`${inter.variable} ${spaceGrotesk.variable} dark`} suppressHydrationWarning>
         <head>
           <link rel="icon" href="/instagram-explore.svg" type="image/svg+xml" />
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  try {
+                    var theme = localStorage.getItem('followerscan-theme') || 'dark';
+                    document.documentElement.classList.remove('light', 'dark');
+                    document.documentElement.classList.add(theme);
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
         </head>
         <body className={`${inter.className} antialiased`}>
           <Providers>{children}</Providers>
