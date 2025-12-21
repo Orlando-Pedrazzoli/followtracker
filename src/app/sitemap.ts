@@ -4,7 +4,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://www.followerscan.com';
   const currentDate = new Date().toISOString();
 
-  // Main pages with priorities
   const mainPages = [
     {
       url: baseUrl,
@@ -25,10 +24,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/upload`,
+      url: `${baseUrl}/sample`,
       lastModified: currentDate,
       changeFrequency: 'monthly' as const,
       priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/upload`,
+      lastModified: currentDate,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
     },
     {
       url: `${baseUrl}/faq`,
@@ -38,41 +43,39 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Legal pages
   const legalPages = [
     {
       url: `${baseUrl}/privacy`,
       lastModified: currentDate,
       changeFrequency: 'yearly' as const,
-      priority: 0.5,
+      priority: 0.4,
     },
     {
       url: `${baseUrl}/terms`,
       lastModified: currentDate,
       changeFrequency: 'yearly' as const,
-      priority: 0.5,
+      priority: 0.4,
     },
     {
       url: `${baseUrl}/gdpr`,
       lastModified: currentDate,
       changeFrequency: 'yearly' as const,
-      priority: 0.5,
+      priority: 0.4,
     },
-  ];
-
-  // Auth pages (lower priority, but still indexable for branded searches)
-  const authPages = [
     {
-      url: `${baseUrl}/auth/sign-in`,
+      url: `${baseUrl}/cookies`,
       lastModified: currentDate,
       changeFrequency: 'yearly' as const,
       priority: 0.3,
     },
+  ];
+
+  const authPages = [
     {
       url: `${baseUrl}/auth/sign-up`,
       lastModified: currentDate,
       changeFrequency: 'yearly' as const,
-      priority: 0.4,
+      priority: 0.5,
     },
   ];
 

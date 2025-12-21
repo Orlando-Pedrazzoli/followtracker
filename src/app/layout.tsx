@@ -16,48 +16,82 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://followerscan.com'),
-  title: 'FollowerScan - Gerencie seus seguidores do Instagram',
+  metadataBase: new URL('https://www.followerscan.com'),
+  title: {
+    default: 'FollowerScan - Analise seus Seguidores do Instagram',
+    template: '%s | FollowerScan',
+  },
   description:
-    'Analise seus seguidores do Instagram de forma privada e segura. Descubra quem não está te seguindo de volta, detecte bloqueios e obtenha insights valiosos.',
+    'Descubra quem não te segue de volta no Instagram. Análise 100% privada e segura, processamento local, detector de bloqueios e insights valiosos.',
   keywords: [
     'instagram',
     'seguidores',
     'followers',
-    'análise',
-    'privacidade',
-    'scan',
-    'bloqueios',
+    'análise instagram',
+    'quem não me segue',
     'unfollowers',
+    'detector de bloqueios',
+    'instagram analytics',
+    'seguidores instagram',
+    'privacidade instagram',
   ],
-  authors: [{ name: 'Orlando Pedrazzoli' }],
+  authors: [{ name: 'Orlando Pedrazzoli', url: 'https://orlandopedrazzoli.com' }],
   creator: 'Orlando Pedrazzoli',
+  publisher: 'FollowerScan',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: 'https://www.followerscan.com',
+    languages: {
+      'pt-BR': 'https://www.followerscan.com',
+      'pt-PT': 'https://www.followerscan.com',
+    },
+  },
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    url: 'https://followerscan.com',
+    url: 'https://www.followerscan.com',
     siteName: 'FollowerScan',
-    title: 'FollowerScan - Analise seus seguidores do Instagram',
-    description: 'Descubra quem não te segue de volta, detecte bloqueios e obtenha insights valiosos.',
+    title: 'FollowerScan - Descubra Quem Não Te Segue no Instagram',
+    description: 'Análise de seguidores 100% privada. Descubra quem não te segue de volta, detecte bloqueios e obtenha insights valiosos.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'FollowerScan',
+        alt: 'FollowerScan - Análise de Seguidores Instagram',
+        type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FollowerScan',
-    description: 'Analise seus seguidores do Instagram de forma privada',
+    title: 'FollowerScan - Análise de Seguidores Instagram',
+    description: 'Descubra quem não te segue de volta. 100% privado e seguro.',
+    images: ['/og-image.png'],
+    creator: '@followerscan',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   icons: {
-    icon: '/instagram-explore.svg',
-    shortcut: '/instagram-explore.svg',
-    apple: '/instagram-explore.svg',
+    icon: '/favicon-insta.svg',
+    shortcut: '/favicon-insta.svg',
+    apple: '/apple-touch-icon.png',
   },
+  manifest: '/manifest.json',
+  category: 'technology',
 };
 
 export default function RootLayout({
@@ -101,7 +135,10 @@ export default function RootLayout({
     >
       <html lang="pt-BR" className={`${inter.variable} ${spaceGrotesk.variable} dark`} suppressHydrationWarning>
         <head>
-          <link rel="icon" href="/instagram-explore.svg" type="image/svg+xml" />
+          <link rel="icon" href="/favicon-insta.svg" type="image/svg+xml" />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+          <meta name="theme-color" content="#0F0F23" />
           <script
             dangerouslySetInnerHTML={{
               __html: `

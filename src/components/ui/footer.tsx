@@ -1,10 +1,9 @@
 'use client';
 
-import { Shield, Lock, Globe, Github, Linkedin, Mail, Users } from 'lucide-react';
+import { Shield, Lock, Globe, Github, Linkedin, Mail } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// Payment methods configuration - paths match files in /public folder
 const paymentMethods = [
   { name: 'Visa', src: '/visa-alt.svg' },
   { name: 'Mastercard', src: '/mastercard-alt.svg' },
@@ -30,7 +29,7 @@ export function Footer() {
     suporte: [
       { label: 'FAQ', href: '/faq' },
       { label: 'Como Funciona', href: '/tutorial' },
-      { label: 'Contacto', href: 'mailto:suporte@followerscan.com' },
+      { label: 'Contacto', href: 'mailto:suporte@followerscan.com', external: true },
     ],
     legal: [
       { label: 'Privacidade', href: '/privacy' },
@@ -48,9 +47,13 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center space-x-2 text-white group">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Users className="w-4 h-4 text-white" />
-              </div>
+              <Image 
+                src="/favicon-insta.svg" 
+                alt="FollowerScan" 
+                width={32} 
+                height={32}
+                className="group-hover:scale-105 transition-transform"
+              />
               <span className="font-bold text-xl">FollowerScan</span>
             </Link>
             <p className="text-slate-400 text-sm max-w-sm">
@@ -81,6 +84,7 @@ export function Footer() {
               >
                 <Github className="w-4 h-4" />
               </a>
+
               <a
                 href="https://linkedin.com/in/orlandopedrazzoli"
                 target="_blank"
@@ -90,8 +94,9 @@ export function Footer() {
               >
                 <Linkedin className="w-4 h-4" />
               </a>
+
               <a
-                href="mailto:contato@followerscan.com"
+                href="mailto:suporte@followerscan.com"
                 className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all"
                 aria-label="Email"
               >
@@ -127,12 +132,21 @@ export function Footer() {
             <ul className="space-y-3">
               {footerLinks.suporte.map((link) => (
                 <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-slate-400 hover:text-white transition-colors text-sm"
-                  >
-                    {link.label}
-                  </Link>
+                  {link.external ? (
+                    <a
+                      href={link.href}
+                      className="text-slate-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      href={link.href}
+                      className="text-slate-400 hover:text-white transition-colors text-sm"
+                    >
+                      {link.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -222,9 +236,12 @@ export function FooterMinimal() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded flex items-center justify-center">
-              <Users className="w-3 h-3 text-white" />
-            </div>
+            <Image 
+              src="/favicon-insta.svg" 
+              alt="FollowerScan" 
+              width={20} 
+              height={20}
+            />
             <span>© {currentYear} FollowerScan</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-500">

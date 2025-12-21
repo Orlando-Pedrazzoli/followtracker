@@ -1,10 +1,11 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { Users, Menu, X, ChevronDown, BookOpen, Eye, HelpCircle, Sun, Moon } from 'lucide-react';
+import { Menu, X, ChevronDown, BookOpen, Eye, HelpCircle, Sun, Moon } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useTheme } from '@/components/theme-provider';
 
 interface HeaderProps {
@@ -84,12 +85,16 @@ export function Header({
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3 group transition-all hover:scale-105 flex-shrink-0">
-              <div className="w-9 h-9 md:w-10 md:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
-                <Users className="text-white w-4 h-4 md:w-5 md:h-5" />
-              </div>
+              <Image 
+                src="/favicon-insta.svg" 
+                alt="FollowerScan" 
+                width={40} 
+                height={40}
+                className="w-9 h-9 md:w-10 md:h-10"
+              />
               <div className="text-left">
-                <h1 className="text-white font-bold text-lg md:text-xl tracking-tight">FollowerScan</h1>
-                <p className="text-slate-400 text-[10px] md:text-xs hidden sm:block">{subtitle}</p>
+                <h1 className={`font-bold text-lg md:text-xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>FollowerScan</h1>
+                <p className={`text-[10px] md:text-xs hidden sm:block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{subtitle}</p>
               </div>
             </Link>
 
@@ -99,7 +104,9 @@ export function Header({
                 {navItems.map((item) => (
                   <Link key={item.href} href={item.href}
                     className={`text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-                      isActive(item.href) ? 'text-white bg-white/10' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      isActive(item.href) 
+                        ? isDark ? 'text-white bg-white/10' : 'text-slate-900 bg-slate-100'
+                        : isDark ? 'text-slate-300 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}>
                     {item.label}
                   </Link>
@@ -109,7 +116,9 @@ export function Header({
                 <div className="relative" ref={dropdownRef}>
                   <button onClick={() => setResourcesOpen(!resourcesOpen)}
                     className={`flex items-center gap-1.5 text-sm font-medium px-4 py-2 rounded-lg transition-colors ${
-                      resourcesOpen ? 'text-white bg-white/10' : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      resourcesOpen 
+                        ? isDark ? 'text-white bg-white/10' : 'text-slate-900 bg-slate-100'
+                        : isDark ? 'text-slate-300 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                     }`}>
                     Recursos
                     <ChevronDown className={`w-4 h-4 transition-transform ${resourcesOpen ? 'rotate-180' : ''}`} />
@@ -133,7 +142,7 @@ export function Header({
                               {item.icon}
                             </div>
                             <div>
-                              <div className="text-white font-medium text-sm">{item.label}</div>
+                              <div className={`font-medium text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>{item.label}</div>
                               <div className="text-slate-400 text-xs mt-0.5">{item.description}</div>
                             </div>
                           </Link>
@@ -145,7 +154,9 @@ export function Header({
 
                 {/* Theme Toggle */}
                 <button onClick={toggleTheme}
-                  className="ml-2 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                  className={`ml-2 p-2 rounded-lg transition-all ${
+                    isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
                   aria-label="Mudar tema">
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -157,7 +168,9 @@ export function Header({
               {/* Theme Toggle Mobile */}
               {showNav && (
                 <button onClick={toggleTheme}
-                  className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                  className={`lg:hidden p-2 rounded-lg transition-all ${
+                    isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
                   aria-label="Mudar tema">
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -168,7 +181,10 @@ export function Header({
               {/* Mobile Menu Button */}
               {showNav && (
                 <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="lg:hidden flex items-center justify-center w-10 h-10 text-white rounded-lg hover:bg-white/10">
+                  className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-lg ${
+                    isDark ? 'text-white hover:bg-white/10' : 'text-slate-900 hover:bg-slate-100'
+                  }`}
+                  aria-label="Menu">
                   {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
               )}
@@ -191,8 +207,8 @@ export function Header({
                 isDark ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200'
               }`}>
               <div className={`flex items-center justify-between p-4 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-                <span className="text-white font-semibold">Menu</span>
-                <button onClick={() => setMobileMenuOpen(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white">
+                <span className={`font-semibold ${isDark ? 'text-white' : 'text-slate-900'}`}>Menu</span>
+                <button onClick={() => setMobileMenuOpen(false)} className={`w-10 h-10 flex items-center justify-center ${isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'}`}>
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -204,7 +220,9 @@ export function Header({
                   {navItems.map((item) => (
                     <Link key={item.href} href={item.href}
                       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive(item.href) ? 'bg-purple-500/20 text-white' : 'text-slate-300 hover:bg-white/5'
+                        isActive(item.href) 
+                          ? 'bg-purple-500/20 text-white' 
+                          : isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'
                       }`}>
                       {item.label}
                     </Link>
@@ -216,7 +234,9 @@ export function Header({
                   <nav className="space-y-1">
                     {resourcesItems.map((item) => (
                       <Link key={item.href} href={item.href}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-white/5">
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                          isDark ? 'text-slate-300 hover:bg-white/5' : 'text-slate-600 hover:bg-slate-50'
+                        }`}>
                         <span className="text-purple-400">{item.icon}</span>
                         <div>
                           <div className="font-medium">{item.label}</div>
@@ -227,7 +247,7 @@ export function Header({
                   </nav>
                 </div>
 
-                <div className="mt-6 pt-6 border-t border-white/10 flex flex-wrap gap-x-4 gap-y-2 px-4">
+                <div className={`mt-6 pt-6 border-t flex flex-wrap gap-x-4 gap-y-2 px-4 ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
                   <Link href="/privacy" className="text-slate-500 text-sm hover:text-slate-300">Privacidade</Link>
                   <Link href="/terms" className="text-slate-500 text-sm hover:text-slate-300">Termos</Link>
                   <Link href="/gdpr" className="text-slate-500 text-sm hover:text-slate-300">RGPD</Link>
