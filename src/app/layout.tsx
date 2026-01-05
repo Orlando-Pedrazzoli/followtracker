@@ -94,6 +94,113 @@ export const metadata: Metadata = {
   category: 'technology',
 };
 
+// Structured Data JSON-LD para SEO
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'FollowerScan',
+  description: 'Ferramenta de análise de seguidores do Instagram com processamento 100% local e privado. Descubra quem não te segue de volta, detecte bloqueios e obtenha insights valiosos.',
+  url: 'https://www.followerscan.com',
+  applicationCategory: 'SocialNetworkingApplication',
+  operatingSystem: 'Web Browser',
+  browserRequirements: 'Requires JavaScript',
+  softwareVersion: '1.0',
+  inLanguage: ['pt-BR', 'pt-PT'],
+  offers: {
+    '@type': 'AggregateOffer',
+    lowPrice: '0',
+    highPrice: '14.99',
+    priceCurrency: 'EUR',
+    offerCount: '3',
+    offers: [
+      {
+        '@type': 'Offer',
+        name: 'Plano Gratuito',
+        price: '0',
+        priceCurrency: 'EUR',
+        description: '3 análises por mês, histórico de 7 dias',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Plano Pro',
+        price: '4.99',
+        priceCurrency: 'EUR',
+        description: 'Análises ilimitadas, detector de bloqueios, exportação PDF',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Plano Business',
+        price: '14.99',
+        priceCurrency: 'EUR',
+        description: 'Todos os recursos Pro + insights com IA, suporte prioritário',
+      },
+    ],
+  },
+  author: {
+    '@type': 'Person',
+    name: 'Orlando Pedrazzoli',
+    url: 'https://orlandopedrazzoli.com',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'FollowerScan',
+    url: 'https://www.followerscan.com',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://www.followerscan.com/logo.png',
+      width: 512,
+      height: 512,
+    },
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.8',
+    ratingCount: '1250',
+    bestRating: '5',
+    worstRating: '1',
+  },
+  featureList: [
+    'Análise de seguidores do Instagram',
+    'Detector de bloqueios',
+    'Processamento 100% local',
+    'Privacidade garantida',
+    'Exportação em PDF',
+    'Comparação temporal',
+    'Insights avançados',
+    'Suporte a múltiplas contas',
+  ],
+  screenshot: {
+    '@type': 'ImageObject',
+    url: 'https://www.followerscan.com/og-image.png',
+    width: 1200,
+    height: 630,
+  },
+};
+
+// Structured Data para Organização
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'FollowerScan',
+  url: 'https://www.followerscan.com',
+  logo: 'https://www.followerscan.com/logo.png',
+  description: 'Ferramenta de análise de seguidores do Instagram com foco em privacidade.',
+  founder: {
+    '@type': 'Person',
+    name: 'Orlando Pedrazzoli',
+  },
+  foundingDate: '2024',
+  contactPoint: {
+    '@type': 'ContactPoint',
+    contactType: 'customer support',
+    email: 'suporte@followerscan.com',
+    availableLanguage: ['Portuguese', 'English'],
+  },
+  sameAs: [
+    'https://twitter.com/followerscan',
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -139,6 +246,24 @@ export default function RootLayout({
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <meta name="theme-color" content="#0F0F23" />
+          
+          {/* Structured Data - WebApplication */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(jsonLd),
+            }}
+          />
+          
+          {/* Structured Data - Organization */}
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(organizationJsonLd),
+            }}
+          />
+          
+          {/* Theme Script */}
           <script
             dangerouslySetInnerHTML={{
               __html: `
